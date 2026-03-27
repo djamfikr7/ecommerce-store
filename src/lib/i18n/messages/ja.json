@@ -1,0 +1,48 @@
+{
+  "common": {
+    "home": "ホーム",
+    "products": "商品",
+    "cart": "カート",
+    "checkout": "購入手続き",
+    "orders": "注文",
+    "wishlist": "ウィッシュリスト",
+    "profile": "プロフィール",
+    "login": "ログイン",
+    "register": "新規登録",
+    "logout": "ログアウト",
+    "search": "検索",
+    "loading": "読み込み中...",
+    "error": "エラー",
+    "retry": "再試行",
+    "save": "保存",
+    "cancel": "キャンセル",
+    "delete": "削除",
+    "edit": "編集",
+    "add": "追加",
+    "view": "表示",
+    "back": "戻る",
+    "next": "次へ",
+    "previous": "前へ"
+  },
+  "home": {
+    "hero": {
+      "title": "当店へようこそ",
+      "subtitle": "素晴らしい商品を精彩的価格でお届けします",
+      "cta": "今すぐショッピング"
+    }
+  },
+  "cart": {
+    "empty": "カートは空です",
+    "continueShopping": "ショッピングを続ける",
+    "subtotal": "小計",
+    "tax": "税金",
+    "shipping": "送料",
+    "total": "合計",
+    "checkout": "購入手続きへ"
+  },
+  "errors": {
+    "generic": "問題が発生しました。もう一度お試しください。",
+    "notFound": "ページが見つかりません",
+    "unauthorized": "このページにアクセスするにはログインしてください"
+  }
+}

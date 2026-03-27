@@ -1,0 +1,669 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums
+enum UserRole {
+  USER
+  ADMIN
+  SUPERADMIN
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
+
+enum PaymentMethod {
+  CREDIT_CARD
+  DEBIT_CARD
+  PAYPAL
+  APPLE_PAY
+  GOOGLE_PAY
+}
+
+// Models
+
+model User {
+  id            String    @id @default(cuid())
+  email         String   @unique
+  emailVerified DateTime?
+  name          String?
+  image         String?
+  password      String?   // Hashed password for credentials auth
+  role          UserRole @default(USER)
+  phone         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  accounts    Account[]
+  sessions    Session[]
+  addresses   Address[]
+  orders      Order[]
+  reviews     Review[]
+  wishlist    Wishlist?
+  socialConnections SocialConnection[]
+  referralsSent    Referral[] @relation("Referrer")
+  referralsReceived Referral[] @relation("Invitees")
+  invitationSent    Invitation[] @relation("ReferrerUser")
+  invitationReceived Invitation[] @relation("InviteeUser")
+  cart        Cart?
+  auditLogs   AdminAuditLog[]
+
+  @@index([email])
+  @@index([role])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Category {
+  id          String    @id @default(cuid())
+  name        String
+  slug        String    @unique
+  description String?   @db.Text
+  image       String?
+  parentId    String?
+  parent      Category? @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children    Category[] @relation("CategoryHierarchy")
+  products    Product[]
+  sortOrder   Int       @default(0)
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([slug])
+  @@index([parentId])
+}
+
+model Product {
+  id              String    @id @default(cuid())
+  name            String
+  slug            String    @unique
+  description     String?   @db.Text
+  descriptionLocalized Json?
+  price           Int       // Price in cents (NEVER use floats!)
+  compareAtPrice  Int?      // Original price for comparison
+  costPrice       Int?      // Cost for profit calculation
+  sku             String    @unique
+  barcode         String?
+  stockQuantity   Int       @default(0)
+  lowStockThreshold Int     @default(5)
+  trackInventory  Boolean   @default(true)
+  isFeatured      Boolean   @default(false)
+  isActive        Boolean   @default(true)
+  categoryId      String?
+  category        Category? @relation(fields: [categoryId], references: [id])
+  images          ProductImage[]
+  variants        ProductVariant[]
+  reviews         Review[]
+  wishlistedBy    WishlistItem[]
+  socialPosts     SocialPost[]
+  tags            ProductTag[]
+  orderItems      OrderItem[]
+  cartItems       CartItem[]
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([slug])
+  @@index([categoryId])
+  @@index([isActive])
+  @@index([sku])
+}
+
+model ProductImage {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  url       String
+  alt       String?
+  width     Int?
+  height    Int?
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([productId])
+}
+
+model ProductVariant {
+  id                String   @id @default(cuid())
+  productId         String
+  product           Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  name              String   // e.g., "Size: Medium", "Color: Red"
+  sku               String   @unique
+  price             Int?     // Overrides product price, in cents
+  stockQuantity     Int      @default(0)
+  lowStockThreshold Int      @default(3)
+  trackInventory    Boolean  @default(true)
+  attributes        Json     // {size: "M", color: "Red"}
+  images            ProductImage[]
+  orderItems        OrderItem[]
+  cartItems         CartItem[]
+  wishlistItems     WishlistItem[]
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([productId])
+  @@index([sku])
+}
+
+model ProductTag {
+  id       String    @id @default(cuid())
+  name     String    @unique
+  products Product[] @relation("ProductTags")
+}
+
+model Address {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        String    // SHIPPING, BILLING, BOTH
+  firstName   String
+  lastName    String
+  addressLine1 String
+  addressLine2 String?
+  city        String
+  state       String?
+  postalCode  String
+  country     String
+  phone       String?
+  isDefault   Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([userId])
+}
+
+model Cart {
+  id                String     @id @default(cuid())
+  userId            String?    @unique
+  user              User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessionId         String?    @unique // For guest carts
+  items             CartItem[]
+  estimatedShipping Int?       // Estimated shipping in cents
+  estimatedTax      Int?       // Estimated tax in cents
+  currency          String     @default("USD")
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+
+  @@index([userId])
+  @@index([sessionId])
+}
+
+model CartItem {
+  id          String        @id @default(cuid())
+  cartId      String
+  cart        Cart          @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  productId   String?
+  product     Product?      @relation(fields: [productId], references: [id])
+  variantId   String?
+  variant     ProductVariant? @relation(fields: [variantId], references: [id])
+  quantity    Int           @default(1)
+  priceAtAdd  Int           // Price locked at time of add (in cents)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@unique([cartId, productId, variantId])
+  @@index([cartId])
+}
+
+model Order {
+  id                   String        @id @default(cuid())
+  orderNumber          String        @unique // Human readable: ORD-20260327-001
+  userId               String?
+  user                 User?         @relation(fields: [userId], references: [id])
+  status               OrderStatus   @default(PENDING)
+  items                OrderItem[]
+  subtotal             Int           // In cents
+  shippingCost         Int           @default(0) // In cents
+  tax                  Int           @default(0) // In cents
+  total                Int           // In cents
+  currency             String        @default("USD")
+  shippingAddress      Json          // Embedded address
+  billingAddress       Json          // Embedded address
+  paymentMethod        PaymentMethod?
+  paymentStatus        PaymentStatus @default(PENDING)
+  stripePaymentIntentId String?      @unique
+  idempotencyKey       String?       @unique
+  notes                String?
+  referral             Referral?
+  socialTracking       SocialTracking?
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+
+  @@index([orderNumber])
+  @@index([userId])
+  @@index([status])
+  @@index([stripePaymentIntentId])
+}
+
+model OrderItem {
+  id          String         @id @default(cuid())
+  orderId     String
+  order       Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId   String
+  product     Product        @relation(fields: [productId], references: [id])
+  variantId   String?
+  variant     ProductVariant? @relation(fields: [variantId], references: [id])
+  productName String         // Snapshot of name at order time
+  variantName String?        // Snapshot of variant at order time
+  sku         String         // Snapshot of SKU
+  price       Int            // Price at time of order (in cents)
+  quantity    Int
+  total       Int            // price * quantity (in cents)
+  reviewed    Boolean        @default(false)
+  review      Review?
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+model Review {
+  id          String       @id @default(cuid())
+  userId      String
+  user        User         @relation(fields: [userId], references: [id])
+  productId   String
+  product     Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  orderItemId String?
+  orderItem   OrderItem?   @relation(fields: [orderItemId], references: [id])
+  rating      Int          // 1-5
+  title       String?
+  content     String?       @db.Text
+  images      ReviewImage[]
+  verifiedPurchase Boolean @default(false)
+  helpfulCount    Int      @default(0)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([productId])
+  @@index([userId])
+}
+
+model ReviewImage {
+  id        String   @id @default(cuid())
+  reviewId  String
+  review    Review   @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  url       String
+  alt       String?
+  createdAt DateTime @default(now())
+
+  @@index([reviewId])
+}
+
+model Wishlist {
+  id        String         @id @default(cuid())
+  userId    String         @unique
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     WishlistItem[]
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+}
+
+model WishlistItem {
+  id         String         @id @default(cuid())
+  wishlistId String
+  wishlist   Wishlist       @relation(fields: [wishlistId], references: [id], onDelete: Cascade)
+  productId  String
+  product    Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variantId  String?
+  variant    ProductVariant? @relation(fields: [variantId], references: [id])
+  addedAt    DateTime       @default(now())
+
+  @@unique([wishlistId, productId, variantId])
+  @@index([wishlistId])
+}
+
+model SocialConnection {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  platform        String   // FACEBOOK, INSTAGRAM, TWITTER, TIKTOK
+  platformUserId  String
+  platformUsername String?
+  accessToken     String  // Encrypted
+  refreshToken    String? // Encrypted
+  tokenExpiresAt  DateTime?
+  profileImage    String?
+  isActive        Boolean @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([userId, platform])
+  @@index([platform])
+}
+
+model Invitation {
+  id            String   @id @default(cuid())
+  referrerId    String
+  referrer      User     @relation("ReferrerUser", fields: [referrerId], references: [id])
+  inviteeEmail  String
+  inviteeId     String?
+  status        String   @default("PENDING") // PENDING, ACCEPTED, EXPIRED
+  referralCode  String   @unique
+  rewardCredits Int      @default(0) // In cents
+  expiresAt     DateTime
+  acceptedAt    DateTime?
+  createdAt     DateTime @default(now())
+
+  referrals Referral[]
+
+  @@index([referrerId])
+  @@index([inviteeEmail])
+  @@index([referralCode])
+}
+
+model Referral {
+  id             String      @id @default(cuid())
+  orderId        String      @unique
+  order          Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  invitationId   String?
+  invitation     Invitation? @relation(fields: [invitationId], references: [id])
+  referrerId     String
+  referrer       User        @relation("Referrer", fields: [referrerId], references: [id])
+  inviteeId      String?
+  invitee        User?       @relation("Invitees", fields: [inviteeId], references: [id])
+  rewardAmount   Int         // In cents
+  createdAt      DateTime    @default(now())
+
+  @@index([referrerId])
+  @@index([inviteeId])
+}
+
+model SocialTracking {
+  id            String   @id @default(cuid())
+  orderId       String   @unique
+  order         Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  utmSource     String?
+  utmMedium     String?
+  utmCampaign   String?
+  utmContent    String?
+  utmTerm       String?
+  platform      String?
+  platformAdId  String?
+  clickId       String?
+  landingPage   String?
+  createdAt     DateTime @default(now())
+
+  @@index([utmSource])
+  @@index([utmCampaign])
+}
+
+model AnalyticsEvent {
+  id         String   @id @default(cuid())
+  type       String   // VIEW_PRODUCT, ADD_TO_CART, CHECKOUT_START, etc.
+  userId     String?
+  sessionId  String?
+  productId  String?
+  orderId    String?
+  variantId  String?
+  categoryId String?
+  cartValue  Int?     // In cents
+  currency   String?
+  metadata   Json?
+  ip         String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  @@index([type])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model Currency {
+  id           String   @id @default(cuid())
+  code         String   @unique // USD, EUR, GBP, etc.
+  name         String
+  symbol       String
+  exchangeRate Decimal  @default(1) // Relative to base currency
+  decimalPlaces Int     @default(2) // JPY=0, USD=2
+  isBaseCurrency Boolean @default(false)
+  isActive     Boolean  @default(true)
+  updatedAt    DateTime @updatedAt
+
+  @@index([code])
+  @@index([isActive])
+}
+
+model AdminAuditLog {
+  id         String   @id @default(cuid())
+  adminId    String
+  admin      User     @relation(fields: [adminId], references: [id])
+  action     String
+  entityType String
+  entityId   String?
+  oldValue   Json?
+  newValue   Json?
+  ip         String?
+  createdAt  DateTime @default(now())
+
+  @@index([adminId])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
+
+// ============================================
+// Social Media Automation Models
+// ============================================
+
+enum SocialPlatform {
+  FACEBOOK
+  INSTAGRAM
+  TWITTER
+  LINKEDIN
+  PINTEREST
+  TIKTOK
+}
+
+enum SocialPostStatus {
+  DRAFT
+  SCHEDULED
+  PUBLISHED
+  FAILED
+}
+
+enum SocialCampaignStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  COMPLETED
+}
+
+model SocialPost {
+  id              String           @id @default(cuid())
+  platform        SocialPlatform
+  content         String           @db.Text
+  imageUrl        String?
+  videoUrl        String?
+  productId       String?
+  product         Product?         @relation(fields: [productId], references: [id])
+  campaignId      String?
+  campaign        SocialCampaign?  @relation(fields: [campaignId], references: [id])
+  userId          String?
+  status          SocialPostStatus @default(DRAFT)
+  scheduledFor    DateTime?
+  publishedAt     DateTime?
+  externalPostId  String?          // ID from social platform
+  externalPostUrl String?          // URL to the post
+  likesCount      Int              @default(0)
+  commentsCount   Int              @default(0)
+  sharesCount      Int              @default(0)
+  impressions      Int              @default(0)
+  reach           Int              @default(0)
+  clicksCount     Int              @default(0)
+  engagementRate  Float            @default(0)
+  errorMessage    String?
+  retryCount      Int              @default(0)
+  locale          String           @default("en")
+  metadata        Json?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  comments SocialComment[]
+
+  @@index([platform])
+  @@index([status])
+  @@index([scheduledFor])
+  @@index([campaignId])
+  @@index([productId])
+  @@index([publishedAt])
+}
+
+model SocialCampaign {
+  id          String             @id @default(cuid())
+  name        String
+  description String?            @db.Text
+  goal        String?            // AWARENESS, ENGAGEMENT, TRAFFIC, CONVERSIONS
+  products    SocialPost[]
+  status      SocialCampaignStatus @default(DRAFT)
+  startDate   DateTime?
+  endDate     DateTime?
+  totalPosts  Int                @default(0)
+  totalReach  Int                @default(0)
+  totalEngagement Int             @default(0)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  @@index([status])
+  @@index([startDate])
+}
+
+model SocialComment {
+  id              String      @id @default(cuid())
+  postId          String
+  post            SocialPost  @relation(fields: [postId], references: [id], onDelete: Cascade)
+  externalId      String?     // ID from social platform
+  authorName      String
+  authorUsername  String?
+  authorAvatar    String?
+  content         String      @db.Text
+  parentCommentId String?
+  parentComment   SocialComment? @relation("CommentReplies", fields: [parentCommentId], references: [id])
+  replies         SocialComment[] @relation("CommentReplies")
+  isAutoReplied   Boolean     @default(false)
+  replyContent    String?     @db.Text
+  likesCount      Int         @default(0)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@index([postId])
+  @@index([externalId])
+  @@index([createdAt])
+}
+
+model AutomationWorkflow {
+  id          String   @id @default(cuid())
+  name        String
+  trigger     String   // PRODUCT_CREATED, ORDER_MILESTONE, LOW_STOCK, BESTSELLER
+  action      String   // POST_TO_SOCIAL, SEND_NOTIFICATION, etc.
+  config      Json     // Workflow configuration
+  isActive    Boolean  @default(true)
+  lastRunAt   DateTime?
+  runCount    Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([trigger])
+  @@index([isActive])
+}
+
+model AutomationLog {
+  id          String   @id @default(cuid())
+  workflowId  String?
+  workflow    AutomationWorkflow? @relation(fields: [workflowId], references: [id])
+  trigger     String
+  status      String   // SUCCESS, FAILED, SKIPPED
+  input       Json?
+  output      Json?
+  error       String?
+  duration    Int?     // in milliseconds
+  createdAt   DateTime @default(now())
+
+  @@index([workflowId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model ContentTemplate {
+  id          String   @id @default(cuid())
+  name        String
+  platform    SocialPlatform
+  template    String   @db.Text
+  variables   String[] // Variable names like {{product_name}}, {{price}}
+  category    String?  // PRODUCT, PROMOTION, SEASONAL, etc.
+  isActive    Boolean  @default(true)
+  usageCount  Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([platform])
+  @@index([category])
+}
+
+model ScheduledTask {
+  id          String   @id @default(cuid())
+  type        String   // POST, ANALYTICS_SYNC, ENGAGEMENT, etc.
+  payload     Json     // Task data
+  scheduledFor DateTime
+  status      String   @default("PENDING") // PENDING, PROCESSING, COMPLETED, FAILED
+  attempts    Int      @default(0)
+  maxAttempts Int      @default(3)
+  error       String?
+  completedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([type])
+  @@index([scheduledFor])
+  @@index([status])
+}

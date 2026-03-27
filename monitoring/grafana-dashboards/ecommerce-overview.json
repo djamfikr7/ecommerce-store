@@ -1,0 +1,38 @@
+{
+  "dashboard": {
+    "title": "E-Commerce Overview",
+    "panels": [
+      {
+        "title": "Revenue Today",
+        "type": "stat",
+        "datasource": "prometheus",
+        "targets": [{ "expr": "sum(revenue_total{job=\"ecommerce\"})" }]
+      },
+      {
+        "title": "Orders Today",
+        "type": "stat",
+        "targets": [{ "expr": "count(orders_total{job=\"ecommerce\"})" }]
+      },
+      {
+        "title": "Active Users",
+        "type": "stat",
+        "targets": [{ "expr": "sum(active_users{session=\"current\"})" }]
+      },
+      {
+        "title": "API Response Time (p95)",
+        "type": "graph",
+        "targets": [{ "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))" }]
+      },
+      {
+        "title": "Error Rate",
+        "type": "graph",
+        "targets": [{ "expr": "rate(http_errors_total[5m]) / rate(http_requests_total[5m])" }]
+      },
+      {
+        "title": "Core Web Vitals (LCP)",
+        "type": "graph",
+        "targets": [{ "expr": "histogram_quantile(0.75, webvitals_lcp_bucket)" }]
+      }
+    ]
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "common": {
+    "home": "Startseite",
+    "products": "Produkte",
+    "cart": "Warenkorb",
+    "checkout": "Zur Kasse",
+    "orders": "Bestellungen",
+    "wishlist": "Wunschliste",
+    "profile": "Profil",
+    "login": "Anmelden",
+    "register": "Registrieren",
+    "logout": "Abmelden",
+    "search": "Suchen",
+    "loading": "Laden...",
+    "error": "Fehler",
+    "retry": "Erneut versuchen",
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "delete": "Löschen",
+    "edit": "Bearbeiten",
+    "add": "Hinzufügen",
+    "view": "Ansehen",
+    "back": "Zurück",
+    "next": "Weiter",
+    "previous": "Vorherige"
+  },
+  "home": {
+    "hero": {
+      "title": "Willkommen in Unserem Shop",
+      "subtitle": "Entdecken Sie erstaunliche Produkte zu großartigen Preisen",
+      "cta": "Jetzt Einkaufen"
+    }
+  },
+  "cart": {
+    "empty": "Ihr Warenkorb ist leer",
+    "continueShopping": "Weiter Einkaufen",
+    "subtotal": "Zwischensumme",
+    "tax": "Steuer",
+    "shipping": "Versand",
+    "total": "Gesamt",
+    "checkout": "Zur Kasse"
+  },
+  "errors": {
+    "generic": "Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut.",
+    "notFound": "Seite nicht gefunden",
+    "unauthorized": "Sie müssen angemeldet sein, um auf diese Seite zuzugreifen"
+  }
+}

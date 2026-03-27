@@ -1,0 +1,48 @@
+{
+  "common": {
+    "home": "Inicio",
+    "products": "Productos",
+    "cart": "Carrito",
+    "checkout": "Pagar",
+    "orders": "Pedidos",
+    "wishlist": "Lista de deseos",
+    "profile": "Perfil",
+    "login": "Iniciar sesión",
+    "register": "Registrarse",
+    "logout": "Cerrar sesión",
+    "search": "Buscar",
+    "loading": "Cargando...",
+    "error": "Error",
+    "retry": "Reintentar",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "add": "Añadir",
+    "view": "Ver",
+    "back": "Atrás",
+    "next": "Siguiente",
+    "previous": "Anterior"
+  },
+  "home": {
+    "hero": {
+      "title": "Bienvenido a Nuestra Tienda",
+      "subtitle": "Descubre productos increíbles a grandes precios",
+      "cta": "Comprar Ahora"
+    }
+  },
+  "cart": {
+    "empty": "Tu carrito está vacío",
+    "continueShopping": "Seguir Comprando",
+    "subtotal": "Subtotal",
+    "tax": "Impuesto",
+    "shipping": "Envío",
+    "total": "Total",
+    "checkout": "Proceder al Pago"
+  },
+  "errors": {
+    "generic": "Algo salió mal. Por favor, inténtalo de nuevo.",
+    "notFound": "Página no encontrada",
+    "unauthorized": "Debes iniciar sesión para acceder a esta página"
+  }
+}
