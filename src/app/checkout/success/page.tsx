@@ -1,94 +1,114 @@
-'use client';
+'use client'
 
-import React, { useEffect, useState, Suspense } from 'react';
-import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
-import { motion } from 'framer-motion';
-import { CheckCircle, Package, Mail, ArrowRight, ShoppingBag, UserPlus } from 'lucide-react';
-import { formatPrice } from '@/lib/currency';
+import { useSearchParams, useRouter } from 'next/navigation'
+import { useEffect, useState, Suspense } from 'react'
+import Link from 'next/link'
+import { motion } from 'framer-motion'
+import { CheckCircle, Package, Mail, ArrowRight, ShoppingBag, UserPlus } from 'lucide-react'
+import { formatPrice } from '@/lib/currency'
 
 interface OrderDetails {
-  id: string;
-  orderNumber: string;
-  status: string;
-  total: number;
+  id: string
+  orderNumber: string
+  status: string
+  total: number
   items: Array<{
-    id: string;
-    name: string;
-    quantity: number;
-    price: number;
-    image?: string;
-  }>;
-  estimatedDelivery?: string;
-  email: string;
+    id: string
+    name: string
+    quantity: number
+    price: number
+    image?: string
+  }>
+  estimatedDelivery?: string
+  email: string
 }
 
 function SuccessPageContent() {
-  const searchParams = useSearchParams();
-  const orderId = searchParams.get('orderId');
-  const sessionId = searchParams.get('session_id');
-  const [order, setOrder] = useState<OrderDetails | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const searchParams = useSearchParams()
+  const orderId = searchParams.get('orderId')
+  const sessionId = searchParams.get('session_id')
+  const isMock = searchParams.get('mock') === 'true'
+  const [order, setOrder] = useState<OrderDetails | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchOrder = async () => {
       if (!orderId && !sessionId) {
-        setError('No order information found');
-        setIsLoading(false);
-        return;
+        setError('No order information found')
+        setIsLoading(false)
+        return
       }
 
       try {
-        const params = new URLSearchParams();
-        if (orderId) params.set('orderId', orderId);
-        if (sessionId) params.set('sessionId', sessionId);
+        // In mock mode, create order directly
+        if (isMock && sessionId) {
+          const res = await fetch('/api/checkout/mock-complete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sessionId }),
+          })
+          if (!res.ok) throw new Error('Failed to create mock order')
+          const data = await res.json()
 
-        const response = await fetch(`/api/orders/details?${params}`);
-        if (!response.ok) throw new Error('Failed to fetch order');
+          // Fetch the created order details
+          const orderRes = await fetch(`/api/orders/details?orderId=${data.orderId}`)
+          if (!orderRes.ok) throw new Error('Failed to fetch order')
+          const orderData = await orderRes.json()
+          setOrder(orderData)
+          setIsLoading(false)
+          return
+        }
 
-        const data = await response.json();
-        setOrder(data);
+        const params = new URLSearchParams()
+        if (orderId) params.set('orderId', orderId)
+        if (sessionId) params.set('sessionId', sessionId)
+
+        const response = await fetch(`/api/orders/details?${params}`)
+        if (!response.ok) throw new Error('Failed to fetch order')
+
+        const data = await response.json()
+        setOrder(data)
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load order');
+        setError(err instanceof Error ? err.message : 'Failed to load order')
       } finally {
-        setIsLoading(false);
+        setIsLoading(false)
       }
-    };
+    }
 
-    fetchOrder();
-  }, [orderId, sessionId]);
+    fetchOrder()
+  }, [orderId, sessionId, isMock])
 
   // Confetti animation effect
   useEffect(() => {
     if (!isLoading && order) {
-      const canvas = document.createElement('canvas');
-      canvas.id = 'confetti';
-      canvas.style.position = 'fixed';
-      canvas.style.top = '0';
-      canvas.style.left = '0';
-      canvas.style.width = '100%';
-      canvas.style.height = '100%';
-      canvas.style.pointerEvents = 'none';
-      canvas.style.zIndex = '1000';
-      document.body.appendChild(canvas);
+      const canvas = document.createElement('canvas')
+      canvas.id = 'confetti'
+      canvas.style.position = 'fixed'
+      canvas.style.top = '0'
+      canvas.style.left = '0'
+      canvas.style.width = '100%'
+      canvas.style.height = '100%'
+      canvas.style.pointerEvents = 'none'
+      canvas.style.zIndex = '1000'
+      document.body.appendChild(canvas)
 
-      const ctx = canvas.getContext('2d');
+      const ctx = canvas.getContext('2d')
       if (ctx) {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
+        canvas.width = window.innerWidth
+        canvas.height = window.innerHeight
 
         const particles: Array<{
-          x: number;
-          y: number;
-          color: string;
-          size: number;
-          speedX: number;
-          speedY: number;
-          opacity: number;
-        }> = [];
+          x: number
+          y: number
+          color: string
+          size: number
+          speedX: number
+          speedY: number
+          opacity: number
+        }> = []
 
-        const colors = ['#8b5cf6', '#ec4899', '#10b981', '#f59e0b', '#3b82f6'];
+        const colors = ['#8b5cf6', '#ec4899', '#10b981', '#f59e0b', '#3b82f6']
 
         for (let i = 0; i < 150; i++) {
           particles.push({
@@ -99,54 +119,57 @@ function SuccessPageContent() {
             speedX: Math.random() * 4 - 2,
             speedY: Math.random() * 3 + 2,
             opacity: 1,
-          });
+          })
         }
 
-        let animationId: number;
+        let animationId: number
         const animate = () => {
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.clearRect(0, 0, canvas.width, canvas.height)
 
           particles.forEach((p, index) => {
-            p.x += p.speedX;
-            p.y += p.speedY;
-            p.opacity -= 0.005;
+            p.x += p.speedX
+            p.y += p.speedY
+            p.opacity -= 0.005
 
             if (p.opacity <= 0) {
-              particles.splice(index, 1);
-              return;
+              particles.splice(index, 1)
+              return
             }
 
-            ctx.save();
-            ctx.globalAlpha = p.opacity;
-            ctx.fillStyle = p.color;
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.restore();
-          });
+            ctx.save()
+            ctx.globalAlpha = p.opacity
+            ctx.fillStyle = p.color
+            ctx.beginPath()
+            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2)
+            ctx.fill()
+            ctx.restore()
+          })
 
           if (particles.length > 0) {
-            animationId = requestAnimationFrame(animate);
+            animationId = requestAnimationFrame(animate)
           } else {
-            document.body.removeChild(canvas);
+            document.body.removeChild(canvas)
           }
-        };
+        }
 
-        animate();
+        animate()
 
         return () => {
-          cancelAnimationFrame(animationId);
-          const confettiCanvas = document.getElementById('confetti');
-          if (confettiCanvas) document.body.removeChild(confettiCanvas);
-        };
+          cancelAnimationFrame(animationId)
+          const confettiCanvas = document.getElementById('confetti')
+          if (confettiCanvas) document.body.removeChild(confettiCanvas)
+        }
       }
     }
-  }, [isLoading, order]);
+  }, [isLoading, order])
 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-[#0a0a1a] to-[#1a1a2e] flex items-center justify-center">
         <div className="text-center">
+          {isMock && (
+            <p className="text-yellow-400 text-sm mb-4">Mock Mode - Creating test order</p>
+          )}
           <motion.div
             animate={{ rotate: 360 }}
             transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
@@ -155,7 +178,7 @@ function SuccessPageContent() {
           <p className="text-white/60">Loading order details...</p>
         </div>
       </div>
-    );
+    )
   }
 
   if (error || !order) {
@@ -172,11 +195,18 @@ function SuccessPageContent() {
           </Link>
         </div>
       </div>
-    );
+    )
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#0a0a1a] to-[#1a1a2e]">
+      {/* Mock Mode Banner */}
+      {isMock && (
+        <div className="bg-yellow-500/20 border-b border-yellow-500/50 py-2 text-center">
+          <span className="text-yellow-400 text-sm">Mock Mode - No real payment processed</span>
+        </div>
+      )}
+
       <div className="container mx-auto px-4 py-16">
         {/* Success Header */}
         <motion.div
@@ -320,7 +350,7 @@ function SuccessPageContent() {
         </motion.div>
       </div>
     </div>
-  );
+  )
 }
 
 export default function CheckoutSuccessPage() {
@@ -332,5 +362,5 @@ export default function CheckoutSuccessPage() {
     }>
       <SuccessPageContent />
     </Suspense>
-  );
+  )
 }

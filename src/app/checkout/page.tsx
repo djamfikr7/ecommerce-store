@@ -18,6 +18,9 @@ import { formatPrice } from '@/lib/currency';
 // Initialize Stripe (use env variable in production)
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || 'pk_test_placeholder');
 
+// Check for mock mode
+const IS_MOCK_STRIPE = process.env.NEXT_PUBLIC_MOCK_STRIPE === 'true';
+
 const CHECKOUT_STEPS = [
   { id: 1, label: 'Information', shortLabel: 'Info' },
   { id: 2, label: 'Shipping', shortLabel: 'Ship' },
@@ -127,6 +130,15 @@ export default function CheckoutPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#0a0a1a] to-[#1a1a2e]">
+      {/* Mock Mode Banner */}
+      {IS_MOCK_STRIPE && (
+        <div className="bg-yellow-500/20 border-b border-yellow-500/50 py-2 text-center">
+          <span className="text-yellow-400 text-sm">
+            Mock Mode - No real payments. Set NEXT_PUBLIC_MOCK_STRIPE=false for production.
+          </span>
+        </div>
+      )}
+
       {/* Header */}
       <header className="border-b border-white/10 bg-[#0f0f23]/80 backdrop-blur-lg sticky top-0 z-30">
         <div className="container mx-auto px-4 py-4">
