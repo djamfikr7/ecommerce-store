@@ -71,8 +71,8 @@ export default function RegisterPage() {
         return
       }
 
-      // Redirect to login with success message
-      router.push('/login?registered=true')
+      // Redirect to verification page
+      router.push(`/verify-email?email=${encodeURIComponent(data.email)}`)
     } catch (err) {
       setError('Registration failed. Please try again.')
     } finally {

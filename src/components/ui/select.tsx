@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils'
 
 export interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   label?: string
-  error?: string
+  error?: string | undefined
 }
 
 const Select = React.forwardRef<HTMLSelectElement, SelectProps>(

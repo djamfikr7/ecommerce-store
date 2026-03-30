@@ -1,0 +1,13 @@
+# Test artifacts
+test-results/
+playwright-report/
+playwright/.cache/
+
+# Screenshots and videos
+screenshots/
+videos/
+traces/
+
+# Coverage
+coverage/
+.nyc_output/

@@ -2,3 +2,4 @@
 export { WishlistProvider, useWishlist, WishlistContext } from './wishlist-context'
 export { WishlistButton, WishlistButtonCompact } from './wishlist-button'
 export { WishlistDrawer } from './wishlist-drawer'
+export { WishlistItem } from './wishlist-item'
