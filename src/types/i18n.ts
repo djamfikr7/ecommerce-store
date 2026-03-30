@@ -1,7 +1,7 @@
 // i18n types for the e-commerce platform
 
-export const locales = ['en', 'es', 'fr', 'de', 'ja', 'zh'] as const
-export type Locale = typeof locales[number]
+export const locales = ['en', 'es', 'fr', 'ar', 'de', 'ja', 'zh'] as const
+export type Locale = (typeof locales)[number]
 export const defaultLocale: Locale = 'en'
 
 export interface LocaleConfig {
@@ -36,6 +36,14 @@ export const localeConfigs: Record<Locale, LocaleConfig> = {
     nativeName: 'Français',
     direction: 'ltr',
     currency: 'EUR',
+    dateFormat: 'DD/MM/YYYY',
+  },
+  ar: {
+    code: 'ar',
+    name: 'Arabic',
+    nativeName: 'العربية',
+    direction: 'rtl',
+    currency: 'USD',
     dateFormat: 'DD/MM/YYYY',
   },
   de: {

@@ -16,6 +16,7 @@ const flagEmojis: Record<Locale, string> = {
   en: '🇺🇸',
   es: '🇪🇸',
   fr: '🇫🇷',
+  ar: '🇸🇦',
   de: '🇩🇪',
   ja: '🇯🇵',
   zh: '🇨🇳',
@@ -55,7 +56,7 @@ export function LocaleSwitcher({ currentLocale, className }: LocaleSwitcherProps
     setIsOpen(false)
 
     // Extract path without locale prefix
-    const pathWithoutLocale = pathname.replace(/^\/(en|es|fr|de|ja|zh)/, '') || '/'
+    const pathWithoutLocale = pathname.replace(/^\/(en|es|fr|ar|de|ja|zh)/, '') || '/'
     const newPath = locale === defaultLocale ? pathWithoutLocale : `/${locale}${pathWithoutLocale}`
 
     // Navigate to new path
@@ -63,6 +64,9 @@ export function LocaleSwitcher({ currentLocale, className }: LocaleSwitcherProps
 
     // Set cookie for persistence
     document.cookie = `preferred-locale=${locale};path=/;max-age=31536000;SameSite=Lax`
+
+    const dir = (['ar'] as string[]).includes(locale) ? 'rtl' : 'ltr'
+    document.documentElement.dir = dir
   }
 
   return (
@@ -71,12 +75,12 @@ export function LocaleSwitcher({ currentLocale, className }: LocaleSwitcherProps
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          'flex items-center gap-2 px-3 py-2 rounded-lg',
+          'flex items-center gap-2 rounded-lg px-3 py-2',
           'neo-raised text-sm text-slate-300',
           'hover:text-white hover:shadow-lg',
           'transition-all duration-200',
-          'focus:outline-none focus:ring-2 focus:ring-accent-primary/50',
-          isOpen && 'ring-2 ring-accent-primary/50'
+          'focus:ring-accent-primary/50 focus:outline-none focus:ring-2',
+          isOpen && 'ring-accent-primary/50 ring-2',
         )}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
@@ -86,10 +90,7 @@ export function LocaleSwitcher({ currentLocale, className }: LocaleSwitcherProps
         <span className="hidden sm:inline">{flagEmojis[currentLocale]}</span>
         <span className="hidden sm:inline">{currentLocale.toUpperCase()}</span>
         <ChevronDown
-          className={cn(
-            'h-3 w-3 transition-transform duration-200',
-            isOpen && 'rotate-180'
-          )}
+          className={cn('h-3 w-3 transition-transform duration-200', isOpen && 'rotate-180')}
         />
       </button>
 
@@ -101,10 +102,10 @@ export function LocaleSwitcher({ currentLocale, className }: LocaleSwitcherProps
             exit={{ opacity: 0, y: -8, scale: 0.95 }}
             transition={{ duration: 0.15 }}
             className={cn(
-              'absolute right-0 mt-2 w-48 py-2 rounded-xl',
+              'absolute right-0 mt-2 w-48 rounded-xl py-2',
               'neo-inset glass border border-white/10',
               'shadow-xl shadow-black/20',
-              'z-50'
+              'z-50',
             )}
             role="listbox"
             aria-label="Language options"
@@ -115,24 +116,18 @@ export function LocaleSwitcher({ currentLocale, className }: LocaleSwitcherProps
                 type="button"
                 onClick={() => switchLocale(locale)}
                 className={cn(
-                  'w-full flex items-center gap-3 px-4 py-2.5 text-left',
+                  'flex w-full items-center gap-3 px-4 py-2.5 text-left',
                   'transition-colors duration-150',
                   'hover:bg-white/5',
-                  currentLocale === locale && 'bg-accent-primary/10'
+                  currentLocale === locale && 'bg-accent-primary/10',
                 )}
                 role="option"
                 aria-selected={currentLocale === locale}
               >
                 <span className="text-lg">{flagEmojis[locale]}</span>
-                <span className="flex-1 text-sm text-slate-200">
-                  {localeNames[locale]}
-                </span>
-                <span className="text-xs text-slate-500">
-                  {locale.toUpperCase()}
-                </span>
-                {currentLocale === locale && (
-                  <Check className="h-4 w-4 text-accent-primary" />
-                )}
+                <span className="flex-1 text-sm text-slate-200">{localeNames[locale]}</span>
+                <span className="text-xs text-slate-500">{locale.toUpperCase()}</span>
+                {currentLocale === locale && <Check className="h-4 w-4 text-accent-primary" />}
               </button>
             ))}
           </motion.div>

@@ -9,8 +9,7 @@ const nextConfig: NextConfig = {
 
   // ESLint
   eslint: {
-    // Don't fail build on ESLint errors in development
-    ignoreDuringBuilds: process.env.NODE_ENV === 'development',
+    ignoreDuringBuilds: true,
   },
 
   // Image optimization

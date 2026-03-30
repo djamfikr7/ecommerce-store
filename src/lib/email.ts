@@ -8,6 +8,8 @@ import { OrderCancelledEmail } from './emails/order-cancelled'
 import { OrderStatusUpdateEmail } from './emails/order-status-update'
 import { WelcomeEmail } from './emails/welcome'
 import { PasswordResetEmail } from './emails/password-reset'
+import { VerifyEmail } from './emails/verify-email'
+import { NewsletterEmail } from './emails/newsletter'
 
 // Initialize Resend client
 const resend = new Resend(process.env.RESEND_API_KEY)
@@ -31,10 +33,7 @@ async function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
-async function sendEmailWithRetry(
-  options: SendEmailOptions,
-  attempt = 1
-): Promise<{ id: string }> {
+async function sendEmailWithRetry(options: SendEmailOptions, attempt = 1): Promise<{ id: string }> {
   try {
     const { data, error } = await resend.sendEmail({
       from: FROM_EMAIL,
@@ -70,9 +69,7 @@ async function sendEmailWithRetry(
   }
 }
 
-export async function sendEmail(
-  options: SendEmailOptions
-): Promise<{ id: string }> {
+export async function sendEmail(options: SendEmailOptions): Promise<{ id: string }> {
   // Validate API key at startup
   if (!process.env.RESEND_API_KEY) {
     console.error('RESEND_API_KEY is not configured')
@@ -182,8 +179,8 @@ export async function sendOrderShipped(orderId: string): Promise<void> {
     dhl: `https://www.dhl.com/en/express/tracking.html?AWB=${order.trackingNumber}`,
   }
 
-  const trackingUrl = carrierTrackingUrls[order.carrier.toLowerCase()]
-    || `${baseUrl}/track/${order.trackingNumber}`
+  const trackingUrl =
+    carrierTrackingUrls[order.carrier.toLowerCase()] || `${baseUrl}/track/${order.trackingNumber}`
 
   const email = OrderShippedEmail({
     orderNumber: order.orderNumber,
@@ -252,10 +249,7 @@ export async function sendOrderDelivered(orderId: string): Promise<void> {
 }
 
 // Order cancelled email
-export async function sendOrderCancelled(
-  orderId: string,
-  reason: string
-): Promise<void> {
+export async function sendOrderCancelled(orderId: string, reason: string): Promise<void> {
   const order = await getOrderWithDetails(orderId)
 
   if (!order) {
@@ -319,10 +313,7 @@ export async function sendWelcomeEmail(userId: string): Promise<void> {
 }
 
 // Password reset email
-export async function sendPasswordReset(
-  email: string,
-  token: string
-): Promise<void> {
+export async function sendPasswordReset(email: string, token: string): Promise<void> {
   // Fetch user to get their name
   const user = await prisma.user.findUnique({
     where: { email },
@@ -359,7 +350,7 @@ export async function sendPasswordReset(
 export async function sendOrderStatusUpdate(
   orderId: string,
   oldStatus: string,
-  newStatus: string
+  newStatus: string,
 ): Promise<void> {
   const order = await getOrderWithDetails(orderId)
 
@@ -374,9 +365,10 @@ export async function sendOrderStatusUpdate(
     dhl: `https://www.dhl.com/en/express/tracking.html?AWB=${order.trackingNumber}`,
   }
 
-  const trackingUrl = order.carrier && order.trackingNumber
-    ? carrierTrackingUrls[order.carrier.toLowerCase()]
-    : undefined
+  const trackingUrl =
+    order.carrier && order.trackingNumber
+      ? carrierTrackingUrls[order.carrier.toLowerCase()]
+      : undefined
 
   const email = OrderStatusUpdateEmail({
     orderNumber: order.orderNumber,
@@ -412,6 +404,60 @@ export function validateEmailConfig(): boolean {
   }
 
   return true
+}
+
+export async function sendVerifyEmail(
+  email: string,
+  userName: string,
+  verificationUrl: string,
+  verificationCode: string,
+): Promise<void> {
+  const emailTemplate = VerifyEmail({
+    userName,
+    verificationUrl,
+    verificationCode,
+  })
+
+  await sendEmail({
+    to: email,
+    subject: 'Verify Your VoltStore Email',
+    react: emailTemplate,
+  })
+
+  console.log(`Verify email sent to: ${email}`)
+}
+
+export async function sendNewsletter(
+  to: string | string[],
+  data: {
+    recipientName: string
+    recipientEmail: string
+    newsletterTitle: string
+    subtitle?: string
+    heroImage?: string
+    heroUrl?: string
+    articles: Array<{
+      id: string
+      title: string
+      description: string
+      url: string
+      image?: string
+      category?: string
+    }>
+    promoCode?: string
+    promoDiscount?: string
+    promoExpiry?: string
+  },
+): Promise<void> {
+  const email = NewsletterEmail(data)
+
+  await sendEmail({
+    to,
+    subject: data.newsletterTitle,
+    react: email,
+  })
+
+  console.log(`Newsletter sent: ${data.newsletterTitle}`)
 }
 
 // Initialize email service validation

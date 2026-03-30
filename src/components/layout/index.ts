@@ -1,3 +1,8 @@
 export { Header } from './header'
 export { Footer } from './footer'
 export { Sidebar, CategorySidebar } from './sidebar'
+export type { CategoryItem } from './sidebar'
+export { Breadcrumbs } from './breadcrumbs'
+export type { BreadcrumbItem } from './breadcrumbs'
+export { BackToTop } from './back-to-top'
+export { BottomNav } from './bottom-nav'

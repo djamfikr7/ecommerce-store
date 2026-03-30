@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react'
 import { convertCurrency } from '@/lib/currency/conversion'
 
-export type SupportedCurrency = 'USD' | 'EUR' | 'GBP' | 'JPY' | 'CNY'
+export type SupportedCurrency = 'USD' | 'EUR' | 'GBP' | 'CAD' | 'JPY' | 'CNY'
 
 export interface CurrencyInfo {
   code: SupportedCurrency
@@ -17,9 +17,38 @@ export interface CurrencyInfo {
 export const supportedCurrencies: CurrencyInfo[] = [
   { code: 'USD', symbol: '$', name: 'US Dollar', flag: 'US', decimalPlaces: 2, locale: 'en-US' },
   { code: 'EUR', symbol: '\u20AC', name: 'Euro', flag: 'EU', decimalPlaces: 2, locale: 'de-DE' },
-  { code: 'GBP', symbol: '\u00A3', name: 'British Pound', flag: 'GB', decimalPlaces: 2, locale: 'en-GB' },
-  { code: 'JPY', symbol: '\u00A5', name: 'Japanese Yen', flag: 'JP', decimalPlaces: 0, locale: 'ja-JP' },
-  { code: 'CNY', symbol: '\u00A5', name: 'Chinese Yuan', flag: 'CN', decimalPlaces: 2, locale: 'zh-CN' },
+  {
+    code: 'GBP',
+    symbol: '\u00A3',
+    name: 'British Pound',
+    flag: 'GB',
+    decimalPlaces: 2,
+    locale: 'en-GB',
+  },
+  {
+    code: 'CAD',
+    symbol: 'C$',
+    name: 'Canadian Dollar',
+    flag: 'CA',
+    decimalPlaces: 2,
+    locale: 'en-CA',
+  },
+  {
+    code: 'JPY',
+    symbol: '\u00A5',
+    name: 'Japanese Yen',
+    flag: 'JP',
+    decimalPlaces: 0,
+    locale: 'ja-JP',
+  },
+  {
+    code: 'CNY',
+    symbol: '\u00A5',
+    name: 'Chinese Yuan',
+    flag: 'CN',
+    decimalPlaces: 2,
+    locale: 'zh-CN',
+  },
 ]
 
 export const defaultCurrency: SupportedCurrency = 'USD'
@@ -57,12 +86,14 @@ function setCookie(name: string, value: string, days: number = 365) {
 }
 
 function getCurrencyInfo(code: SupportedCurrency): CurrencyInfo {
-  return supportedCurrencies.find(c => c.code === code) || supportedCurrencies[0]
+  return (
+    supportedCurrencies.find((c) => c.code === code) ?? (supportedCurrencies[0] as CurrencyInfo)
+  )
 }
 
 function detectCurrency(): SupportedCurrency {
   const cookieCurrency = getCookie(CURRENCY_COOKIE) as SupportedCurrency | null
-  if (cookieCurrency && supportedCurrencies.some(c => c.code === cookieCurrency)) {
+  if (cookieCurrency && supportedCurrencies.some((c) => c.code === cookieCurrency)) {
     return cookieCurrency
   }
 
@@ -71,8 +102,13 @@ function detectCurrency(): SupportedCurrency {
     const browserLocale = navigator.language
 
     if (browserLocale.startsWith('en')) return 'USD'
-    if (browserLocale.startsWith('de') || browserLocale.startsWith('fr') ||
-        browserLocale.startsWith('es') || browserLocale.startsWith('it')) return 'EUR'
+    if (
+      browserLocale.startsWith('de') ||
+      browserLocale.startsWith('fr') ||
+      browserLocale.startsWith('es') ||
+      browserLocale.startsWith('it')
+    )
+      return 'EUR'
     if (browserLocale.startsWith('ja')) return 'JPY'
     if (browserLocale.startsWith('zh')) return 'CNY'
     if (browserLocale.startsWith('en-GB')) return 'GBP'
@@ -87,7 +123,9 @@ interface CurrencyProviderProps {
 }
 
 export function CurrencyProvider({ children, initialCurrency }: CurrencyProviderProps) {
-  const [currency, setCurrencyState] = useState<SupportedCurrency>(initialCurrency || defaultCurrency)
+  const [currency, setCurrencyState] = useState<SupportedCurrency>(
+    initialCurrency || defaultCurrency,
+  )
   const [isLoading, setIsLoading] = useState(!initialCurrency)
 
   useEffect(() => {
@@ -108,34 +146,40 @@ export function CurrencyProvider({ children, initialCurrency }: CurrencyProvider
     setCookie(CURRENCY_COOKIE, newCurrency)
   }, [])
 
-  const convertFromBase = useCallback((cents: number): number => {
-    try {
-      return convertCurrency(cents, 'USD', currency)
-    } catch {
-      return cents
-    }
-  }, [currency])
+  const convertFromBase = useCallback(
+    (cents: number): number => {
+      try {
+        return convertCurrency(cents, 'USD', currency)
+      } catch {
+        return cents
+      }
+    },
+    [currency],
+  )
 
-  const formatPrice = useCallback((cents: number, options: FormatPriceOptions = {}): string => {
-    const { showCurrency = true, locale } = options
+  const formatPrice = useCallback(
+    (cents: number, options: FormatPriceOptions = {}): string => {
+      const { showCurrency = true, locale } = options
 
-    // Convert from base USD to target currency
-    const convertedCents = convertFromBase(cents)
+      // Convert from base USD to target currency
+      const convertedCents = convertFromBase(cents)
 
-    const formatter = new Intl.NumberFormat(locale || currencyInfo.locale, {
-      style: showCurrency ? 'currency' : 'decimal',
-      currency: currency,
-      minimumFractionDigits: currencyInfo.decimalPlaces,
-      maximumFractionDigits: currencyInfo.decimalPlaces,
-    })
+      const formatter = new Intl.NumberFormat(locale || currencyInfo.locale, {
+        style: showCurrency ? 'currency' : 'decimal',
+        currency: currency,
+        minimumFractionDigits: currencyInfo.decimalPlaces,
+        maximumFractionDigits: currencyInfo.decimalPlaces,
+      })
 
-    // For currencies like JPY that don't use decimal places
-    if (currencyInfo.decimalPlaces === 0) {
+      // For currencies like JPY that don't use decimal places
+      if (currencyInfo.decimalPlaces === 0) {
+        return formatter.format(convertedCents / 100)
+      }
+
       return formatter.format(convertedCents / 100)
-    }
-
-    return formatter.format(convertedCents / 100)
-  }, [currency, currencyInfo, convertFromBase])
+    },
+    [currency, currencyInfo, convertFromBase],
+  )
 
   return (
     <CurrencyContext.Provider
