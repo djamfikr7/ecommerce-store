@@ -10,8 +10,20 @@ import { User, Mail, Lock, Check } from 'lucide-react'
 import { registerSchema, type RegisterInput } from '@/lib/validators/auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card'
-import { SocialLoginButton, PasswordInput, FormError, PasswordStrength } from '@/components/auth/auth-forms'
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter,
+} from '@/components/ui/card'
+import {
+  SocialLoginButton,
+  PasswordInput,
+  FormError,
+  PasswordStrength,
+} from '@/components/auth/auth-forms'
 import { cn } from '@/lib/utils'
 
 export default function RegisterPage() {
@@ -42,13 +54,24 @@ export default function RegisterPage() {
     setError(null)
 
     try {
-      // TODO: Integrate with NextAuth register
-      console.log('Register data:', data)
+      const formData = new FormData()
+      formData.append('email', data.email)
+      formData.append('password', data.password)
+      if (data.name) formData.append('name', data.name)
 
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        body: formData,
+      })
 
-      // Redirect on success
+      const result = await response.json()
+
+      if (!result.success) {
+        setError(result.error || 'Registration failed. Please try again.')
+        return
+      }
+
+      // Redirect to login with success message
       router.push('/login?registered=true')
     } catch (err) {
       setError('Registration failed. Please try again.')
@@ -62,7 +85,7 @@ export default function RegisterPage() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: 'easeOut' }}
-      className="w-full max-w-md mx-auto"
+      className="mx-auto w-full max-w-md"
     >
       <motion.div
         animate={{
@@ -77,10 +100,8 @@ export default function RegisterPage() {
       >
         <Card className="p-8">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl gradient-text">Create Account</CardTitle>
-            <CardDescription>
-              Join us to start shopping
-            </CardDescription>
+            <CardTitle className="gradient-text text-2xl">Create Account</CardTitle>
+            <CardDescription>Join us to start shopping</CardDescription>
           </CardHeader>
 
           <CardContent className="space-y-6">
@@ -93,7 +114,7 @@ export default function RegisterPage() {
             {/* Divider */}
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-border-default" />
+                <span className="border-border-default w-full border-t" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
                 <span className="bg-surface-elevated px-2 text-slate-500">
@@ -156,16 +177,16 @@ export default function RegisterPage() {
                   type="button"
                   onClick={() => setTermsAccepted(!termsAccepted)}
                   className={cn(
-                    'mt-0.5 h-5 w-5 rounded border-2 flex items-center justify-center transition-all',
+                    'mt-0.5 flex h-5 w-5 items-center justify-center rounded border-2 transition-all',
                     termsAccepted
-                      ? 'bg-accent-primary border-accent-primary'
-                      : 'border-slate-500 hover:border-slate-400'
+                      ? 'border-accent-primary bg-accent-primary'
+                      : 'border-slate-500 hover:border-slate-400',
                   )}
                   aria-pressed={termsAccepted}
                 >
                   {termsAccepted && <Check className="h-3 w-3 text-white" />}
                 </button>
-                <label className="text-sm text-slate-400 cursor-pointer">
+                <label className="cursor-pointer text-sm text-slate-400">
                   I agree to the{' '}
                   <Link href="/terms" className="text-accent-primary hover:underline">
                     Terms of Service
@@ -194,7 +215,7 @@ export default function RegisterPage() {
               Already have an account?{' '}
               <Link
                 href="/login"
-                className="text-accent-primary hover:text-accent-primary-hover font-medium transition-colors"
+                className="font-medium text-accent-primary transition-colors hover:text-accent-primary-hover"
               >
                 Sign in
               </Link>
