@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { auth } from '@/lib/auth'
+
 import { createCheckoutSession as createRealCheckoutSession, createOrderFromCheckout } from '@/lib/db-actions/checkout'
 import { getCart } from '@/lib/db-actions/cart'
 import { validateCheckoutSession } from '@/lib/validators/cart'
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get user session
-    const session = await getServerSession(authOptions)
+    const session = await auth()
 
     // Prepare checkout data
     const checkoutData = {

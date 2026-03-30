@@ -2,7 +2,6 @@
 
 import React, { createContext, useContext, useReducer, useEffect, useCallback, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { revalidatePath } from 'next/cache'
 import type { WishlistWithItems, WishlistItemWithProduct } from '@/types/wishlist'
 
 // Types

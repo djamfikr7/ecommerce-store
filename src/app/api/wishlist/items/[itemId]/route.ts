@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { auth } from '@/lib/auth'
+
 import { removeFromWishlist, moveToCart } from '@/lib/db-actions/wishlist'
 import { z } from 'zod'
 
@@ -23,7 +23,7 @@ export async function DELETE(
     const { itemId } = await params
 
     // Check authentication
-    const session = await getServerSession(authOptions)
+    const session = await auth()
 
     if (!session?.user?.id) {
       return NextResponse.json(
@@ -85,7 +85,7 @@ export async function POST(
     const { itemId } = await params
 
     // Check authentication
-    const session = await getServerSession(authOptions)
+    const session = await auth()
 
     if (!session?.user?.id) {
       return NextResponse.json(

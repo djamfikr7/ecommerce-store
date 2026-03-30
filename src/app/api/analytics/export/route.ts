@@ -1,14 +1,14 @@
 // GET /api/analytics/export - Export analytics data
+import { auth } from '@/lib/auth'
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+
 import { prisma } from '@/lib/prisma'
 import { ReportFormat } from '@/types/analytics'
 
 export async function GET(request: NextRequest) {
   try {
     // Require admin authentication
-    const session = await getServerSession(authOptions)
+    const session = await auth()
 
     if (!session?.user) {
       return NextResponse.json(

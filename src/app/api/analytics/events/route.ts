@@ -1,9 +1,8 @@
 // POST /api/analytics/events - Record custom analytics events
+import { auth } from '@/lib/auth'
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { v4 as uuidv4 } from 'uuid'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,7 +19,7 @@ export async function POST(request: NextRequest) {
 
     // Get user session if available
     let userId: string | undefined
-    const session = await getServerSession(authOptions)
+    const session = await auth()
     if (session?.user?.id) {
       userId = session.user.id
     }

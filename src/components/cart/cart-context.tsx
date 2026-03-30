@@ -2,7 +2,6 @@
 
 import React, { createContext, useContext, useReducer, useEffect, useCallback, useOptimistic, startTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { revalidatePath } from 'next/cache';
 
 // Types
 export interface CartItem {

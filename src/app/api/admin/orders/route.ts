@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { auth } from '@/lib/auth'
+
 import { adminGetOrders } from '@/lib/db-actions/admin/orders'
 import { validateAdminOrderList } from '@/lib/validators/admin'
 
@@ -8,7 +8,7 @@ import { validateAdminOrderList } from '@/lib/validators/admin'
 export async function GET(request: NextRequest) {
   try {
     // Verify admin session
-    const session = await getServerSession(authOptions)
+    const session = await auth()
 
     if (!session?.user) {
       return NextResponse.json(

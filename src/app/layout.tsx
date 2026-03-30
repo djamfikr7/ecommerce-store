@@ -1,11 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
-import { AnimatePresence } from 'framer-motion'
-import { AuthProvider } from '@/components/providers/auth-provider'
-import { CartProviderWrapper } from '@/components/providers/cart-provider'
-import { WishlistProvider } from '@/components/wishlist/wishlist-context'
-import { Header } from '@/components/layout/header'
-import { AnalyticsProvider } from '@/components/analytics/analytics-provider'
+import { routing } from '@/lib/i18n/routing'
+import { notFound } from 'next/navigation'
 import './globals.css'
 
 const inter = Inter({
@@ -55,28 +51,7 @@ export default function RootLayout({
           background: 'linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%)',
         }}
       >
-        <AuthProvider>
-          <CartProviderWrapper>
-            <WishlistProvider>
-              <AnalyticsProvider>
-              {/* Skip to main content for accessibility */}
-              <a href="#main-content" className="skip-link">
-                Skip to main content
-              </a>
-
-              {/* Header */}
-              <Header />
-
-              {/* Main content */}
-              <AnimatePresence mode="wait">
-                <main id="main-content" role="main">
-                  {children}
-                </main>
-              </AnimatePresence>
-              </AnalyticsProvider>
-            </WishlistProvider>
-          </CartProviderWrapper>
-        </AuthProvider>
+        {children}
       </body>
     </html>
   )

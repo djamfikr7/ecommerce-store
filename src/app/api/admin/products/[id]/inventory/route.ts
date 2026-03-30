@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { auth } from '@/lib/auth'
+
 import { adminUpdateInventory } from '@/lib/db-actions/admin/products'
 import { validateUpdateInventory } from '@/lib/validators/admin'
 
@@ -14,7 +14,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     const { id } = await params
 
     // Verify admin session
-    const session = await getServerSession(authOptions)
+    const session = await auth()
 
     if (!session?.user) {
       return NextResponse.json(

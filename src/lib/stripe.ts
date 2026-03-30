@@ -8,16 +8,20 @@ if (!IS_MOCK && !process.env.STRIPE_SECRET_KEY) {
 }
 
 // Only initialize real Stripe if not in mock mode
-let stripe: Stripe | null = null
+let stripeInstance: Stripe | null = null
 
 if (!IS_MOCK) {
-  stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_mock', {
-    apiVersion: '2025-02-24.acacia',
+  stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_mock', {
+    apiVersion: '2026-03-25.dahlia',
     typescript: true,
   })
 }
 
-export { stripe, IS_MOCK }
+// Export as default for backward compatibility
+export default stripeInstance
+
+// Named exports
+export { stripeInstance as stripe, IS_MOCK }
 
 /**
  * Get Stripe publishable key for client-side

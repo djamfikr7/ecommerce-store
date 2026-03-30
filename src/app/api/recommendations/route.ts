@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { auth } from '@/lib/auth'
+
 import {
   getRecommendationsForUser,
   getRecommendationsForProduct,
@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Check authentication for personalized recommendations
-    const session = await getServerSession(authOptions)
+    const session = await auth()
     const userId = session?.user?.id
 
     let recommendations: unknown

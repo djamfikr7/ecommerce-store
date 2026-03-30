@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { auth } from '@/lib/auth'
+
 import { markHelpful } from '@/lib/db-actions/reviews'
 
 /**
@@ -15,7 +15,7 @@ export async function POST(
     const { id: reviewId } = await params
 
     // Check authentication
-    const session = await getServerSession(authOptions)
+    const session = await auth()
 
     if (!session?.user?.id) {
       return NextResponse.json(

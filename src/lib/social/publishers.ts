@@ -45,10 +45,7 @@ function sleep(ms: number): Promise<void> {
 /**
  * Retry wrapper with exponential backoff
  */
-async function withRetry<T>(
-  fn: () => Promise<T>,
-  maxRetries: number = MAX_RETRIES
-): Promise<T> {
+async function withRetry<T>(fn: () => Promise<T>, maxRetries: number = MAX_RETRIES): Promise<T> {
   let lastError: Error | null = null
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
@@ -74,10 +71,7 @@ async function withRetry<T>(
 /**
  * Upload media to Twitter and return media IDs
  */
-async function uploadTwitterMedia(
-  imageUrls: string[],
-  accessToken: string
-): Promise<string[]> {
+async function uploadTwitterMedia(imageUrls: string[], accessToken: string): Promise<string[]> {
   const mediaIds: string[] = []
 
   for (const imageUrl of imageUrls.slice(0, 4)) {
@@ -86,16 +80,13 @@ async function uploadTwitterMedia(
     const blob = await response.blob()
     const arrayBuffer = await blob.arrayBuffer()
 
-    const uploadResponse = await fetch(
-      'https://upload.twitter.com/1.1/media/upload.json',
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: arrayBuffer,
-      }
-    )
+    const uploadResponse = await fetch('https://upload.twitter.com/1.1/media/upload.json', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: arrayBuffer,
+    })
 
     if (!uploadResponse.ok) {
       const error = await uploadResponse.text()
@@ -115,7 +106,7 @@ async function uploadTwitterMedia(
 export async function publishToTwitter(
   content: string,
   imageUrls: string[] = [],
-  accessToken: string
+  accessToken: string,
 ): Promise<TwitterPostResult> {
   return withRetry(async () => {
     let mediaIds: string[] = []
@@ -158,23 +149,17 @@ export async function publishToTwitter(
 /**
  * Upload image to Facebook
  */
-async function uploadFacebookPhoto(
-  imageUrl: string,
-  accessToken: string
-): Promise<string> {
+async function uploadFacebookPhoto(imageUrl: string, accessToken: string): Promise<string> {
   const response = await fetch(imageUrl)
   const blob = await response.blob()
   const formData = new FormData()
   formData.append('source', blob, 'image.jpg')
   formData.append('access_token', accessToken)
 
-  const uploadResponse = await fetch(
-    'https://graph.facebook.com/v18.0/me/photos',
-    {
-      method: 'POST',
-      body: formData,
-    }
-  )
+  const uploadResponse = await fetch('https://graph.facebook.com/v18.0/me/photos', {
+    method: 'POST',
+    body: formData,
+  })
 
   if (!uploadResponse.ok) {
     const error = await uploadResponse.text()
@@ -191,7 +176,7 @@ async function uploadFacebookPhoto(
 export async function publishToFacebook(
   content: string,
   imageUrls: string[] = [],
-  accessToken: string
+  accessToken: string,
 ): Promise<FacebookPostResult> {
   return withRetry(async () => {
     const postData: any = {
@@ -246,24 +231,26 @@ export async function publishToFacebook(
 export async function publishToInstagram(
   content: string,
   imageUrl: string,
-  accessToken: string
+  accessToken: string,
 ): Promise<InstagramPostResult> {
   return withRetry(async () => {
     // First, get Instagram Business Account ID
     const accountsResponse = await fetch(
-      `https://graph.facebook.com/v18.0/me/accounts?access_token=${accessToken}`
+      `https://graph.facebook.com/v18.0/me/accounts?access_token=${accessToken}`,
     )
     const accountsData = await accountsResponse.json()
 
     if (!accountsData.data || accountsData.data.length === 0) {
-      throw new Error('No Facebook Pages found. Instagram publishing requires a connected Facebook Page.')
+      throw new Error(
+        'No Facebook Pages found. Instagram publishing requires a connected Facebook Page.',
+      )
     }
 
     const pageId = accountsData.data[0].id
 
     // Get Instagram Account ID
     const igResponse = await fetch(
-      `https://graph.facebook.com/v18.0/${pageId}?fields=instagram_business_account&access_token=${accessToken}`
+      `https://graph.facebook.com/v18.0/${pageId}?fields=instagram_business_account&access_token=${accessToken}`,
     )
     const igData = await igResponse.json()
 
@@ -279,20 +266,17 @@ export async function publishToInstagram(
     const imageBuffer = await imageBlob.arrayBuffer()
 
     // Create container for the image
-    const containerResponse = await fetch(
-      `https://graph.facebook.com/v18.0/${igAccountId}/media`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          image_url: imageUrl,
-          caption: content,
-          access_token: accessToken,
-        }),
-      }
-    )
+    const containerResponse = await fetch(`https://graph.facebook.com/v18.0/${igAccountId}/media`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        image_url: imageUrl,
+        caption: content,
+        access_token: accessToken,
+      }),
+    })
 
     if (!containerResponse.ok) {
       const error = await containerResponse.text()
@@ -314,7 +298,7 @@ export async function publishToInstagram(
           creation_id: creationId,
           access_token: accessToken,
         }),
-      }
+      },
     )
 
     if (!publishResponse.ok) {
@@ -326,7 +310,7 @@ export async function publishToInstagram(
 
     // Get permalink
     const permalinkResponse = await fetch(
-      `https://graph.facebook.com/v18.0/${publishData.id}?fields=permalink&access_token=${accessToken}`
+      `https://graph.facebook.com/v18.0/${publishData.id}?fields=permalink&access_token=${accessToken}`,
     )
     const permalinkData = await permalinkResponse.json()
 
@@ -345,7 +329,7 @@ export async function publishToLinkedIn(
   content: string,
   imageUrl?: string,
   accessToken?: string,
-  authorUrn?: string
+  authorUrn?: string,
 ): Promise<LinkedInPostResult> {
   return withRetry(async () => {
     if (!accessToken) {
@@ -353,10 +337,9 @@ export async function publishToLinkedIn(
     }
 
     // Get user profile to get author URN
-    const profileResponse = await fetch(
-      'https://api.linkedin.com/v2/userinfo',
-      { headers: { Authorization: `Bearer ${accessToken}` } }
-    )
+    const profileResponse = await fetch('https://api.linkedin.com/v2/userinfo', {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    })
     const profileData = await profileResponse.json()
     const authorId = profileData.sub
 
@@ -407,7 +390,7 @@ export async function publishToLinkedIn(
               ],
             },
           }),
-        }
+        },
       )
 
       if (registerResponse.ok) {
@@ -435,17 +418,14 @@ export async function publishToLinkedIn(
       }
     }
 
-    const response = await fetch(
-      'https://api.linkedin.com/v2/ugcPosts',
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(postContent),
-      }
-    )
+    const response = await fetch('https://api.linkedin.com/v2/ugcPosts', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(postContent),
+    })
 
     if (!response.ok) {
       const error = await response.text()
@@ -469,7 +449,7 @@ export async function publishToPinterest(
   content: string,
   imageUrl: string,
   linkUrl: string,
-  accessToken: string
+  accessToken: string,
 ): Promise<PinterestPostResult> {
   return withRetry(async () => {
     // Download image
@@ -478,17 +458,14 @@ export async function publishToPinterest(
     const imageBuffer = await imageBlob.arrayBuffer()
 
     // Upload to Pinterest
-    const uploadResponse = await fetch(
-      'https://api.pinterest.com/v5/media',
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'image/png',
-        },
-        body: imageBuffer,
-      }
-    )
+    const uploadResponse = await fetch('https://api.pinterest.com/v5/media', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'image/png',
+      },
+      body: imageBuffer,
+    })
 
     if (!uploadResponse.ok) {
       const error = await uploadResponse.text()
@@ -499,25 +476,22 @@ export async function publishToPinterest(
     const mediaId = mediaData.id
 
     // Create pin
-    const pinResponse = await fetch(
-      'https://api.pinterest.com/v5/pins',
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
+    const pinResponse = await fetch('https://api.pinterest.com/v5/pins', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        title: content.substring(0, 100), // Pinterest title limit
+        description: content,
+        link: linkUrl,
+        media_source: {
+          content_type: 'image/jpeg',
+          data_id: mediaId,
         },
-        body: JSON.stringify({
-          title: content.substring(0, 100), // Pinterest title limit
-          description: content,
-          link: linkUrl,
-          media_source: {
-            content_type: 'image/jpeg',
-            data_id: mediaId,
-          },
-        }),
-      }
-    )
+      }),
+    })
 
     if (!pinResponse.ok) {
       const error = await pinResponse.text()
@@ -544,7 +518,7 @@ export async function publishToPlatform(
   options?: {
     linkUrl?: string
     authorUrn?: string
-  }
+  },
 ): Promise<{ postId: string; postUrl: string }> {
   switch (platform) {
     case 'twitter': {
@@ -565,7 +539,8 @@ export async function publishToPlatform(
       return { postId: result.urn, postUrl: result.postUrl }
     }
     case 'pinterest': {
-      if (!imageUrls[0] || !options?.linkUrl) throw new Error('Pinterest requires image and link URL')
+      if (!imageUrls[0] || !options?.linkUrl)
+        throw new Error('Pinterest requires image and link URL')
       const result = await publishToPinterest(content, imageUrls[0], options.linkUrl, accessToken)
       return { postId: result.id, postUrl: result.url }
     }
@@ -582,3 +557,6 @@ export default {
   publishToPinterest,
   publishToPlatform,
 }
+
+// Alias for backward compatibility
+export const publishToSocial = publishToPlatform

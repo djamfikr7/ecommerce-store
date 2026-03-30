@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { auth } from '@/lib/auth'
+
 import { adminIssueRefund } from '@/lib/db-actions/admin/orders'
 import { validateIssueRefund } from '@/lib/validators/admin'
 
@@ -14,7 +14,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const { id } = await params
 
     // Verify admin session
-    const session = await getServerSession(authOptions)
+    const session = await auth()
 
     if (!session?.user) {
       return NextResponse.json(

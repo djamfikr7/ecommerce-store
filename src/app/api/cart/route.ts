@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { auth } from '@/lib/auth'
+
 import { getOrCreateCart, getGuestCart, createGuestCart, getCartItemCount } from '@/lib/db-actions/cart'
 import { cookies } from 'next/headers'
 
@@ -12,7 +12,7 @@ const GUEST_CART_COOKIE = 'guest_cart_id'
  */
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await auth()
 
     if (session?.user?.id) {
       // Logged-in user
@@ -48,7 +48,7 @@ export async function GET() {
  */
 export async function POST() {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await auth()
 
     // If user is logged in, return their existing cart
     if (session?.user?.id) {

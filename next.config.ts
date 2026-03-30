@@ -33,8 +33,8 @@ const nextConfig: NextConfig = {
   },
 
   // Experimental features
+  typedRoutes: false,
   experimental: {
-    typedRoutes: true,
     serverActions: {
       bodySizeLimit: '2mb',
     },
