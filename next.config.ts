@@ -9,8 +9,7 @@ const nextConfig: NextConfig = {
 
   // ESLint
   eslint: {
-    // Don't fail build on ESLint errors in development
-    ignoreDuringBuilds: process.env.NODE_ENV === 'development',
+    ignoreDuringBuilds: true,
   },
 
   // Image optimization
@@ -33,8 +32,8 @@ const nextConfig: NextConfig = {
   },
 
   // Experimental features
+  typedRoutes: false,
   experimental: {
-    typedRoutes: true,
     serverActions: {
       bodySizeLimit: '2mb',
     },

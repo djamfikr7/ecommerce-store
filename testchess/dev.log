@@ -1,0 +1,14 @@
+   ▲ Next.js 15.5.14
+   - Local:        http://localhost:8080
+   - Network:      http://192.168.100.16:8080
+   - Experiments (use with caution):
+     · optimizePackageImports
+
+ ✓ Starting...
+ ✓ Ready in 1970ms
+ ○ Compiling / ...
+ ✓ Compiled / in 7.4s (1948 modules)
+ GET / 200 in 8391ms
+ GET / 200 in 79ms
+ GET / 200 in 90ms
+[?25h

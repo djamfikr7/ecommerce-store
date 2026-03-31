@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { auth } from '@/lib/auth'
+
 import { getOrCreateCart, addToCart } from '@/lib/db-actions/cart'
 import { validateAddToCart } from '@/lib/validators/cart'
 import { CartItemNotFoundError, InsufficientInventoryError } from '@/types/cart'
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
     const { productId, variantId, quantity } = validation.data
 
     // Get or create cart
-    const session = await getServerSession(authOptions)
+    const session = await auth()
     let cartId: string
     let cart: Awaited<ReturnType<typeof getOrCreateCart>> | null = null
 

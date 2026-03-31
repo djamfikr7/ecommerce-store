@@ -43,32 +43,32 @@ export interface ProductListResponse {
 /**
  * Base Product type from Prisma
  */
-export type ProductBase = Prisma.ProductGetPayload<{}>
+export type ProductBase = Prisma.ProductGetPayload<Record<string, never>>
 
 /**
  * ProductImage type from Prisma
  */
-export type ProductImageBase = Prisma.ProductImageGetPayload<{}>
+export type ProductImageBase = Prisma.ProductImageGetPayload<Record<string, never>>
 
 /**
  * ProductVariant type from Prisma
  */
-export type ProductVariantBase = Prisma.ProductVariantGetPayload<{}>
+export type ProductVariantBase = Prisma.ProductVariantGetPayload<Record<string, never>>
 
 /**
  * Review type from Prisma
  */
-export type ReviewBase = Prisma.ReviewGetPayload<{}>
+export type ReviewBase = Prisma.ReviewGetPayload<Record<string, never>>
 
 /**
  * Category type from Prisma
  */
-export type CategoryBase = Prisma.CategoryGetPayload<{}>
+export type CategoryBase = Prisma.CategoryGetPayload<Record<string, never>>
 
 /**
  * ProductTag type from Prisma
  */
-export type ProductTagBase = Prisma.ProductTagGetPayload<{}>
+export type ProductTagBase = Prisma.ProductTagGetPayload<Record<string, never>>
 
 /**
  * Lightweight product card for list views

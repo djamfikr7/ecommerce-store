@@ -60,7 +60,7 @@ type ProductWithDetails = Prisma.ProductGetPayload<{
  * Get paginated list of products with filtering and sorting
  */
 export async function getProducts(
-  params: ProductListParams
+  params: ProductListParams,
 ): Promise<{ products: ProductCard[]; total: number; page: number; pageSize: number }> {
   const {
     category,
@@ -110,10 +110,7 @@ export async function getProducts(
     where.variants = {
       some: {
         trackInventory: false, // Products without tracking are always "in stock"
-        OR: [
-          { trackInventory: true, stockQuantity: { gt: 0 } },
-          { trackInventory: false },
-        ],
+        OR: [{ trackInventory: true, stockQuantity: { gt: 0 } }, { trackInventory: false }],
       },
     }
   }
@@ -161,32 +158,32 @@ export async function getProducts(
       include: {
         category: {
           select: {
-            id: true
-            name: true
-            slug: true
-          }
+            id: true,
+            name: true,
+            slug: true,
+          },
         },
         images: {
           orderBy: { sortOrder: 'asc' },
           take: 1, // Only first image for list view
           select: {
-            id: true
-            url: true
-            alt: true
-          }
+            id: true,
+            url: true,
+            alt: true,
+          },
         },
         variants: {
           select: {
-            id: true
-            price: true
-            stockQuantity: true
-          }
+            id: true,
+            price: true,
+            stockQuantity: true,
+          },
         },
         reviews: {
           select: {
-            id: true
-            rating: true
-          }
+            id: true,
+            rating: true,
+          },
         },
       },
     }),
@@ -196,18 +193,17 @@ export async function getProducts(
   // Calculate average ratings and format response
   const formattedProducts: ProductCard[] = products.map((product) => {
     const reviewCount = product.reviews.length
-    const averageRating = reviewCount > 0
-      ? product.reviews.reduce((sum, r) => sum + r.rating, 0) / reviewCount
-      : undefined
+    const averageRating =
+      reviewCount > 0
+        ? product.reviews.reduce((sum, r) => sum + r.rating, 0) / reviewCount
+        : undefined
 
     // Calculate min price from variants
     const variantPrices = product.variants
       .map((v) => v.price)
       .filter((p): p is number => p !== null)
 
-    const minVariantPrice = variantPrices.length > 0
-      ? Math.min(...variantPrices)
-      : product.price
+    const minVariantPrice = variantPrices.length > 0 ? Math.min(...variantPrices) : product.price
 
     return {
       id: product.id,
@@ -251,46 +247,46 @@ export async function getProductBySlug(slug: string): Promise<ProductWithRelatio
     include: {
       category: {
         select: {
-          id: true
-          name: true
-          slug: true
-        }
+          id: true,
+          name: true,
+          slug: true,
+        },
       },
       images: {
         orderBy: { sortOrder: 'asc' },
         select: {
-          id: true
-          url: true
-          alt: true
-          width: true
-          height: true
-          sortOrder: true
-        }
+          id: true,
+          url: true,
+          alt: true,
+          width: true,
+          height: true,
+          sortOrder: true,
+        },
       },
       variants: {
         include: {
           images: {
             select: {
-              id: true
-              url: true
-            }
-          }
+              id: true,
+              url: true,
+            },
+          },
         },
-        orderBy: { createdAt: 'asc' }
+        orderBy: { createdAt: 'asc' },
       },
       tags: {
         select: {
-          id: true
-          name: true
-        }
+          id: true,
+          name: true,
+        },
       },
       reviews: {
         include: {
           user: {
             select: {
-              name: true
-            }
-          }
+              name: true,
+            },
+          },
         },
         orderBy: { createdAt: 'desc' },
         take: 10, // Latest 10 reviews
@@ -312,9 +308,8 @@ export async function getProductBySlug(slug: string): Promise<ProductWithRelatio
     select: { rating: true },
   })
 
-  const averageRating = reviews.length > 0
-    ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
-    : undefined
+  const averageRating =
+    reviews.length > 0 ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length : undefined
 
   return {
     ...product,
@@ -342,39 +337,40 @@ export async function getFeaturedProducts(limit: number = 8): Promise<FeaturedPr
     include: {
       category: {
         select: {
-          id: true
-          name: true
-          slug: true
-        }
+          id: true,
+          name: true,
+          slug: true,
+        },
       },
       images: {
         orderBy: { sortOrder: 'asc' },
         take: 1,
         select: {
-          id: true
-          url: true
-          alt: true
-        }
+          id: true,
+          url: true,
+          alt: true,
+        },
       },
       variants: {
         select: {
-          price: true
-          stockQuantity: true
-        }
+          price: true,
+          stockQuantity: true,
+        },
       },
       reviews: {
         select: {
-          rating: true
-        }
+          rating: true,
+        },
       },
     },
   })
 
   return products.map((product) => {
     const reviewCount = product.reviews.length
-    const averageRating = reviewCount > 0
-      ? product.reviews.reduce((sum, r) => sum + r.rating, 0) / reviewCount
-      : undefined
+    const averageRating =
+      reviewCount > 0
+        ? product.reviews.reduce((sum, r) => sum + r.rating, 0) / reviewCount
+        : undefined
 
     // Calculate price range from variants
     const variantPrices = product.variants
@@ -382,12 +378,8 @@ export async function getFeaturedProducts(limit: number = 8): Promise<FeaturedPr
       .map((v) => v.price)
       .filter((p): p is number => p !== null)
 
-    const minVariantPrice = variantPrices.length > 0
-      ? Math.min(...variantPrices)
-      : product.price
-    const maxVariantPrice = variantPrices.length > 0
-      ? Math.max(...variantPrices)
-      : product.price
+    const minVariantPrice = variantPrices.length > 0 ? Math.min(...variantPrices) : product.price
+    const maxVariantPrice = variantPrices.length > 0 ? Math.max(...variantPrices) : product.price
 
     return {
       id: product.id,
@@ -414,7 +406,7 @@ export async function getFeaturedProducts(limit: number = 8): Promise<FeaturedPr
  */
 export async function getRelatedProducts(
   productId: string,
-  limit: number = 4
+  limit: number = 4,
 ): Promise<RelatedProduct[]> {
   // First get the product's category
   const product = await prisma.product.findUnique({
@@ -435,24 +427,24 @@ export async function getRelatedProducts(
       include: {
         category: {
           select: {
-            id: true
-            name: true
-            slug: true
-          }
+            id: true,
+            name: true,
+            slug: true,
+          },
         },
         images: {
           orderBy: { sortOrder: 'asc' },
           take: 1,
           select: {
-            id: true
-            url: true
-            alt: true
-          }
+            id: true,
+            url: true,
+            alt: true,
+          },
         },
         reviews: {
           select: {
-            rating: true
-          }
+            rating: true,
+          },
         },
       },
     })
@@ -473,24 +465,24 @@ export async function getRelatedProducts(
     include: {
       category: {
         select: {
-          id: true
-          name: true
-          slug: true
-        }
+          id: true,
+          name: true,
+          slug: true,
+        },
       },
       images: {
         orderBy: { sortOrder: 'asc' },
         take: 1,
         select: {
-          id: true
-          url: true
-          alt: true
-        }
+          id: true,
+          url: true,
+          alt: true,
+        },
       },
       reviews: {
         select: {
-          rating: true
-        }
+          rating: true,
+        },
       },
     },
   })
@@ -510,9 +502,10 @@ function formatRelatedProduct(product: {
   reviews: { rating: number }[]
 }): RelatedProduct {
   const reviewCount = product.reviews.length
-  const averageRating = reviewCount > 0
-    ? product.reviews.reduce((sum, r) => sum + r.rating, 0) / reviewCount
-    : undefined
+  const averageRating =
+    reviewCount > 0
+      ? product.reviews.reduce((sum, r) => sum + r.rating, 0) / reviewCount
+      : undefined
 
   return {
     id: product.id,
@@ -541,9 +534,9 @@ export async function getCategories(): Promise<CategoryWithCount[]> {
       _count: {
         select: {
           products: {
-            where: { isActive: true }
-          }
-        }
+            where: { isActive: true },
+          },
+        },
       },
       children: {
         where: { isActive: true },
@@ -551,9 +544,9 @@ export async function getCategories(): Promise<CategoryWithCount[]> {
           _count: {
             select: {
               products: {
-                where: { isActive: true }
-              }
-            }
+                where: { isActive: true },
+              },
+            },
           },
         },
       },
@@ -597,9 +590,9 @@ export async function getCategoryBySlug(slug: string): Promise<CategoryWithCount
       _count: {
         select: {
           products: {
-            where: { isActive: true }
-          }
-        }
+            where: { isActive: true },
+          },
+        },
       },
       children: {
         where: { isActive: true },
@@ -607,9 +600,9 @@ export async function getCategoryBySlug(slug: string): Promise<CategoryWithCount
           _count: {
             select: {
               products: {
-                where: { isActive: true }
-              }
-            }
+                where: { isActive: true },
+              },
+            },
           },
         },
       },
@@ -651,7 +644,7 @@ export async function getCategoryBySlug(slug: string): Promise<CategoryWithCount
  */
 export async function searchProducts(
   query: string,
-  limit: number = 10
+  limit: number = 10,
 ): Promise<ProductSearchResult[]> {
   const products = await prisma.product.findMany({
     where: {
@@ -674,7 +667,7 @@ export async function searchProducts(
         select: {
           id: true,
           url: true,
-        }
+        },
       },
     },
   })
@@ -696,7 +689,7 @@ export async function searchProducts(
  * Get the min and max price from product variants
  */
 export async function getProductPriceRange(
-  productId: string
+  productId: string,
 ): Promise<{ min: number; max: number }> {
   const product = await prisma.product.findUnique({
     where: { id: productId },
@@ -704,9 +697,9 @@ export async function getProductPriceRange(
       price: true,
       variants: {
         select: {
-          price: true
-        }
-      }
+          price: true,
+        },
+      },
     },
   })
 
@@ -714,9 +707,7 @@ export async function getProductPriceRange(
     throw new Error('Product not found')
   }
 
-  const variantPrices = product.variants
-    .map((v) => v.price)
-    .filter((p): p is number => p !== null)
+  const variantPrices = product.variants.map((v) => v.price).filter((p): p is number => p !== null)
 
   if (variantPrices.length === 0) {
     return { min: product.price, max: product.price }

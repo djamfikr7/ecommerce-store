@@ -1,11 +1,11 @@
 /**
+import { auth } from '@/lib/auth'
  * Social Tracking API
  * POST /api/social/track - Track a social share/click event
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+
 import {
   trackSocialClick,
   trackSocialClickEvent,
@@ -26,7 +26,7 @@ export const dynamic = 'force-dynamic'
  */
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await auth()
     const userId = session?.user?.id
 
     const body = await request.json()

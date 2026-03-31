@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { auth } from '@/lib/auth'
+
 import { getCartTotals } from '@/lib/db-actions/cart'
 import { cookies } from 'next/headers'
 
@@ -41,7 +41,7 @@ export async function GET() {
  * Helper to get cart ID from session or cookie
  */
 async function getCartId(): Promise<string | null> {
-  const session = await getServerSession(authOptions)
+  const session = await auth()
 
   if (session?.user?.id) {
     const { getOrCreateCart } = await import('@/lib/db-actions/cart')

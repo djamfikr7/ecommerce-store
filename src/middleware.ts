@@ -81,56 +81,59 @@ export default auth((req: NextRequest & { auth: { user?: { role: string } } | nu
     return NextResponse.next()
   }
 
+  // Get user's preferred locale
+  const locale = getLocaleFromRequest(req)
+
   // Check if pathname already has a locale
   const pathnameHasLocaleFlag = pathnameHasLocale(pathname)
 
-  // Get the user's preferred locale
-  const locale = getLocaleFromRequest(req)
-
-  // If pathname doesn't have a locale, redirect to locale-prefixed version
-  if (!pathnameHasLocaleFlag && pathname !== '/') {
-    const newUrl = new URL(`/${locale}${pathname}`, req.url)
+  // If pathname is root or doesn't have a locale, redirect to locale-prefixed version
+  if (!pathnameHasLocaleFlag) {
+    const newUrl = new URL(`/${locale}${pathname === '/' ? '' : pathname}`, req.url)
     newUrl.search = req.nextUrl.search
     return NextResponse.redirect(newUrl)
   }
 
+  // Extract the path without locale for auth checks
+  const segments = pathname.split('/').filter(Boolean)
+  const pathWithoutLocale = segments.length > 1 ? '/' + segments.slice(1).join('/') : '/'
+
   // Auth-related checks (only if authenticated)
-  const { pathname: authPathname } = req.nextUrl
   const isLoggedIn = !!req.auth?.user
   const userRole = req.auth?.user?.role
 
   // Check if route is protected
   const isProtectedRoute = protectedRoutes.some((route) =>
-    authPathname.startsWith(route)
+    pathWithoutLocale.startsWith(route)
   )
 
   // Check if route is for guests only
-  const isAuthRoute = authRoutes.some((route) => authPathname.startsWith(route))
+  const isAuthRoute = authRoutes.some((route) => pathWithoutLocale.startsWith(route))
 
   // Check if route is admin-only
-  const isAdminRoute = adminRoutes.some((route) => authPathname.startsWith(route))
+  const isAdminRoute = adminRoutes.some((route) => pathWithoutLocale.startsWith(route))
 
   // Redirect authenticated users away from auth pages
   if (isLoggedIn && isAuthRoute) {
     const callbackUrl = req.nextUrl.searchParams.get('callbackUrl')
     const redirectUrl = callbackUrl
       ? new URL(callbackUrl, req.url)
-      : new URL('/', req.url)
+      : new URL(`/${locale}`, req.url)
 
     return NextResponse.redirect(redirectUrl)
   }
 
   // Redirect unauthenticated users to login
   if (!isLoggedIn && isProtectedRoute) {
-    const loginUrl = new URL('/login', req.url)
-    loginUrl.searchParams.set('callbackUrl', authPathname)
+    const loginUrl = new URL(`/${locale}/login`, req.url)
+    loginUrl.searchParams.set('callbackUrl', pathWithoutLocale)
 
     return NextResponse.redirect(loginUrl)
   }
 
   // Redirect non-admin users from admin routes
   if (isAdminRoute && userRole !== 'ADMIN' && userRole !== 'SUPERADMIN') {
-    const unauthorizedUrl = new URL('/', req.url)
+    const unauthorizedUrl = new URL(`/${locale}`, req.url)
     return NextResponse.redirect(unauthorizedUrl)
   }
 

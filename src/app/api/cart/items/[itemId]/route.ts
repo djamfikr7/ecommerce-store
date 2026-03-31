@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { auth } from '@/lib/auth'
+
 import { updateCartItem, removeFromCart } from '@/lib/db-actions/cart'
 import { validateUpdateCartItem } from '@/lib/validators/cart'
 import { CartItemNotFoundError, InsufficientInventoryError } from '@/types/cart'
@@ -120,7 +120,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
  * Helper to get cart ID from session or cookie
  */
 async function getCartId(): Promise<string | null> {
-  const session = await getServerSession(authOptions)
+  const session = await auth()
 
   if (session?.user?.id) {
     const { getOrCreateCart } = await import('@/lib/db-actions/cart')

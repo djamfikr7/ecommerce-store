@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { auth } from '@/lib/auth'
+
 import { getProductReviews, createReview } from '@/lib/db-actions/reviews'
 import { validateCreateReview, validateReviewListParams } from '@/lib/validators/reviews'
 
@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     // Check authentication
-    const session = await getServerSession(authOptions)
+    const session = await auth()
 
     if (!session?.user?.id) {
       return NextResponse.json(

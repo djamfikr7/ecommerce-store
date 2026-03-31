@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -79,12 +79,12 @@ model Account {
   type              String
   provider          String
   providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
+  refresh_token     String? 
+  access_token      String? 
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String? @db.Text
+  id_token          String? 
   session_state     String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -112,7 +112,7 @@ model Category {
   id          String    @id @default(cuid())
   name        String
   slug        String    @unique
-  description String?   @db.Text
+  description String?   
   image       String?
   parentId    String?
   parent      Category? @relation("CategoryHierarchy", fields: [parentId], references: [id])
@@ -131,7 +131,7 @@ model Product {
   id              String    @id @default(cuid())
   name            String
   slug            String    @unique
-  description     String?   @db.Text
+  description     String?   
   descriptionLocalized Json?
   price           Int       // Price in cents (NEVER use floats!)
   compareAtPrice  Int?      // Original price for comparison
@@ -150,7 +150,7 @@ model Product {
   reviews         Review[]
   wishlistedBy    WishlistItem[]
   socialPosts     SocialPost[]
-  tags            ProductTag[]
+  tags            ProductTag[] @relation("ProductTags")
   orderItems      OrderItem[]
   cartItems       CartItem[]
   createdAt       DateTime  @default(now())
@@ -187,7 +187,6 @@ model ProductVariant {
   lowStockThreshold Int      @default(3)
   trackInventory    Boolean  @default(true)
   attributes        Json     // {size: "M", color: "Red"}
-  images            ProductImage[]
   orderItems        OrderItem[]
   cartItems         CartItem[]
   wishlistItems     WishlistItem[]
@@ -303,7 +302,7 @@ model OrderItem {
   quantity    Int
   total       Int            // price * quantity (in cents)
   reviewed    Boolean        @default(false)
-  review      Review?
+  reviews     Review[]
 
   @@index([orderId])
   @@index([productId])
@@ -319,7 +318,7 @@ model Review {
   orderItem   OrderItem?   @relation(fields: [orderItemId], references: [id])
   rating      Int          // 1-5
   title       String?
-  content     String?       @db.Text
+  content     String?       
   images      ReviewImage[]
   verifiedPurchase Boolean @default(false)
   helpfulCount    Int      @default(0)
@@ -328,6 +327,7 @@ model Review {
 
   @@index([productId])
   @@index([userId])
+  @@unique([orderItemId]) // One review per order item
 }
 
 model ReviewImage {
@@ -389,6 +389,7 @@ model Invitation {
   referrer      User     @relation("ReferrerUser", fields: [referrerId], references: [id])
   inviteeEmail  String
   inviteeId     String?
+  invitee       User?    @relation("InviteeUser", fields: [inviteeId], references: [id])
   status        String   @default("PENDING") // PENDING, ACCEPTED, EXPIRED
   referralCode  String   @unique
   rewardCredits Int      @default(0) // In cents
@@ -522,7 +523,7 @@ enum SocialCampaignStatus {
 model SocialPost {
   id              String           @id @default(cuid())
   platform        SocialPlatform
-  content         String           @db.Text
+  content         String           
   imageUrl        String?
   videoUrl        String?
   productId       String?
@@ -562,7 +563,7 @@ model SocialPost {
 model SocialCampaign {
   id          String             @id @default(cuid())
   name        String
-  description String?            @db.Text
+  description String?            
   goal        String?            // AWARENESS, ENGAGEMENT, TRAFFIC, CONVERSIONS
   products    SocialPost[]
   status      SocialCampaignStatus @default(DRAFT)
@@ -586,12 +587,12 @@ model SocialComment {
   authorName      String
   authorUsername  String?
   authorAvatar    String?
-  content         String      @db.Text
+  content         String      
   parentCommentId String?
   parentComment   SocialComment? @relation("CommentReplies", fields: [parentCommentId], references: [id])
   replies         SocialComment[] @relation("CommentReplies")
   isAutoReplied   Boolean     @default(false)
-  replyContent    String?     @db.Text
+  replyContent    String?
   likesCount      Int         @default(0)
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
@@ -612,6 +613,7 @@ model AutomationWorkflow {
   runCount    Int      @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  logs        AutomationLog[]
 
   @@index([trigger])
   @@index([isActive])
@@ -638,8 +640,8 @@ model ContentTemplate {
   id          String   @id @default(cuid())
   name        String
   platform    SocialPlatform
-  template    String   @db.Text
-  variables   String[] // Variable names like {{product_name}}, {{price}}
+  template    String
+  variables   Json      // Variable names like {{product_name}}, {{price}}
   category    String?  // PRODUCT, PROMOTION, SEASONAL, etc.
   isActive    Boolean  @default(true)
   usageCount  Int      @default(0)
@@ -666,4 +668,14 @@ model ScheduledTask {
   @@index([type])
   @@index([scheduledFor])
   @@index([status])
+}
+
+model SiteSetting {
+  id    String @id @default(cuid())
+  key   String @unique
+  value Json
+  group String @default("general")
+
+  @@index([key])
+  @@index([group])
 }

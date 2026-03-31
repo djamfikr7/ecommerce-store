@@ -3,39 +3,39 @@
  * Authentication configuration with credentials and OAuth providers
  */
 
-import NextAuth from 'next-auth';
-import { PrismaAdapter } from '@auth/prisma-adapter';
-import CredentialsProvider from 'next-auth/providers/credentials';
-import GoogleProvider from 'next-auth/providers/google';
-import GitHubProvider from 'next-auth/providers/github';
-import { prisma } from '@/lib/prisma';
-import { authenticateUser } from '@/lib/db-actions/auth';
-import type { NextAuthConfig, Session, User } from 'next-auth';
-import type { JWT } from 'next-auth/jwt';
-import type { UserRole } from '@/types/auth';
+import NextAuth from 'next-auth'
+import { PrismaAdapter } from '@auth/prisma-adapter'
+import CredentialsProvider from 'next-auth/providers/credentials'
+import GoogleProvider from 'next-auth/providers/google'
+import GitHubProvider from 'next-auth/providers/github'
+import { prisma } from '@/lib/prisma'
+import { authenticateUser } from '@/lib/db-actions/auth'
+import type { NextAuthConfig, Session, User } from 'next-auth'
+import type { JWT } from 'next-auth/jwt'
+import type { UserRole } from '@/types/auth'
 
 // Extend the built-in session types
 declare module 'next-auth' {
   interface Session {
     user: {
-      id: string;
-      email: string;
-      name: string | null;
-      image: string | null;
-      role: UserRole;
-    };
+      id: string
+      email: string
+      name: string | null
+      image: string | null
+      role: UserRole
+    }
   }
 
   interface User {
-    role?: UserRole;
+    role?: UserRole
   }
 }
 
 // Extend JWT type
 declare module 'next-auth/jwt' {
   interface JWT {
-    id?: string;
-    role?: UserRole;
+    id?: string
+    role?: UserRole
   }
 }
 
@@ -59,26 +59,26 @@ const authConfig: NextAuthConfig = {
         email: { label: 'Email', type: 'email' },
         password: { label: 'Password', type: 'password' },
       },
-      async authorize(credentials) {
+      async authorize(credentials, request) {
         if (!credentials?.email || !credentials?.password) {
-          return null;
+          return null
         }
 
-        const email = credentials.email as string;
-        const password = credentials.password as string;
+        const email = credentials.email as string
+        const password = credentials.password as string
 
         try {
-          const user = await authenticateUser(email, password);
+          const user = await authenticateUser(email, password)
           return {
             id: user.id,
             email: user.email,
-            name: user.name,
-            image: user.image,
-            role: user.role,
-          };
+            name: user.name ?? null,
+            image: user.image ?? null,
+            role: user.role as UserRole,
+          }
         } catch {
           // Don't expose details in error message for security
-          return null;
+          return null
         }
       },
     }),
@@ -120,11 +120,11 @@ const authConfig: NextAuthConfig = {
       if (account?.type === 'oauth') {
         // For OAuth, we automatically link accounts if email matches
         // The PrismaAdapter handles the Account linking
-        return true;
+        return true
       }
 
       // For credentials, user is already verified in authorize callback
-      return true;
+      return true
     },
 
     /**
@@ -134,8 +134,8 @@ const authConfig: NextAuthConfig = {
     async jwt({ token, user, account, profile }) {
       // On initial sign in
       if (user) {
-        token.id = user.id;
-        token.role = (user as User).role || 'USER';
+        token.id = user.id ?? ''
+        token.role = (user as User).role ?? 'USER'
       }
 
       // If we have an OAuth account but no user in token yet,
@@ -144,11 +144,11 @@ const authConfig: NextAuthConfig = {
         const dbUser = await prisma.user.findUnique({
           where: { email: token.email! },
           select: { id: true, role: true },
-        });
+        })
 
         if (dbUser) {
-          token.id = dbUser.id;
-          token.role = dbUser.role as UserRole;
+          token.id = dbUser.id
+          token.role = dbUser.role as UserRole
         }
       }
 
@@ -157,14 +157,14 @@ const authConfig: NextAuthConfig = {
         const dbUser = await prisma.user.findUnique({
           where: { id: token.id },
           select: { role: true },
-        });
+        })
 
         if (dbUser) {
-          token.role = dbUser.role as UserRole;
+          token.role = dbUser.role as UserRole
         }
       }
 
-      return token;
+      return token
     },
 
     /**
@@ -173,11 +173,11 @@ const authConfig: NextAuthConfig = {
      */
     async session({ session, token }): Promise<Session> {
       if (token && session.user) {
-        session.user.id = token.id as string;
-        session.user.role = token.role as UserRole;
+        session.user.id = token.id as string
+        session.user.role = token.role as UserRole
       }
 
-      return session;
+      return session
     },
   },
   events: {
@@ -186,67 +186,54 @@ const authConfig: NextAuthConfig = {
      */
     async createUser({ user }) {
       // You could trigger welcome email, create default cart, etc.
-      console.log(`New user created: ${user.id}`);
+      console.log(`New user created: ${user.id}`)
     },
 
     /**
      * Called when linking an account
      */
     async linkAccount({ user, account }) {
-      console.log(`Account linked for user ${user.id}: ${account.provider}`);
+      console.log(`Account linked for user ${user.id}: ${account.provider}`)
     },
 
     /**
      * Called on sign out
      */
-    async signOut({ token }) {
-      if (token?.id) {
-        console.log(`User signed out: ${token.id}`);
+    async signOut(message) {
+      if ('token' in message && message.token?.id) {
+        console.log(`User signed out: ${message.token.id}`)
       }
     },
   },
-  logger: {
-    error(code, metadata) {
-      console.error('NextAuth Error:', code, metadata);
-    },
-    warn(code) {
-      console.warn('NextAuth Warning:', code);
-    },
-    debug(code, metadata) {
-      if (process.env.NODE_ENV === 'development') {
-        console.debug('NextAuth Debug:', code, metadata);
-      }
-    },
-  },
-};
+}
 
-export const { handlers, auth, signIn, signOut } = NextAuth(authConfig);
+export const { handlers, auth, signIn, signOut } = NextAuth(authConfig)
 
 /**
  * Get the current session server-side
  * Use this in Server Components and Route Handlers
  */
-export const getSession = auth;
+export const getSession = auth
 
 /**
  * Check if a user is authenticated
  * Returns the session if authenticated, null otherwise
  */
-export const requireAuth = auth;
+export const requireAuth = auth
 
 /**
  * Check if the current user has a specific role
  */
 export async function hasRole(role: UserRole): Promise<boolean> {
-  const session = await auth();
-  return session?.user?.role === role;
+  const session = await auth()
+  return session?.user?.role === role
 }
 
 /**
  * Check if the current user is an admin
  */
 export async function isAdmin(): Promise<boolean> {
-  const role = await hasRole('ADMIN');
-  const superAdmin = await hasRole('SUPERADMIN');
-  return role || superAdmin;
+  const role = await hasRole('ADMIN')
+  const superAdmin = await hasRole('SUPERADMIN')
+  return role || superAdmin
 }

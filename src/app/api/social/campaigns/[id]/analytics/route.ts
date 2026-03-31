@@ -1,11 +1,11 @@
 /**
+import { auth } from '@/lib/auth'
  * Campaign Analytics API
  * GET /api/social/campaigns/[id]/analytics - Get analytics for a campaign
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+
 import { getCampaignById, getCampaignAnalytics } from '@/lib/db-actions/social/campaigns'
 
 export const dynamic = 'force-dynamic'
@@ -20,7 +20,7 @@ interface RouteParams {
  */
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await auth()
 
     if (!session?.user?.id) {
       return NextResponse.json(

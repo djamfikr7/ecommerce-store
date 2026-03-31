@@ -1,5 +1,5 @@
-// Lightweight analytics client using the Web Vitals library
-import { onCLS, onFID, onLCP, onFCP, onTTFB, onINP, onBP } from 'web-vitals'
+// Lightweight analytics client using Web Vitals library
+import { onCLS, onFCP, onINP, onLCP, onTTFB } from 'web-vitals'
 
 type AnalyticsEvent = {
   name: string
@@ -31,12 +31,10 @@ export function initWebVitals() {
   if (typeof window === 'undefined') return
 
   onCLS(sendToAnalytics)
-  onFID(sendToAnalytics)
-  onLCP(sendToAnalytics)
   onFCP(sendToAnalytics)
-  onTTFB(sendToAnalytics)
   onINP(sendToAnalytics)
-  onBP(sendToAnalytics)
+  onLCP(sendToAnalytics)
+  onTTFB(sendToAnalytics)
 }
 
 // Custom events

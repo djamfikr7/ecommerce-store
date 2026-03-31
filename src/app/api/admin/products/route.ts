@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { auth } from '@/lib/auth'
+
 import { adminGetProducts, adminCreateProduct } from '@/lib/db-actions/admin/products'
 import { validateAdminProductList, validateCreateProduct } from '@/lib/validators/admin'
 
@@ -8,7 +8,7 @@ import { validateAdminProductList, validateCreateProduct } from '@/lib/validator
 export async function GET(request: NextRequest) {
   try {
     // Verify admin session
-    const session = await getServerSession(authOptions)
+    const session = await auth()
 
     if (!session?.user) {
       return NextResponse.json(
@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     // Verify admin session
-    const session = await getServerSession(authOptions)
+    const session = await auth()
 
     if (!session?.user) {
       return NextResponse.json(

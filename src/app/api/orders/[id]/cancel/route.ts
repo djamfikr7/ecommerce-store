@@ -1,7 +1,7 @@
 // POST /api/orders/[id]/cancel - Cancel order (user or admin)
+import { auth } from '@/lib/auth'
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+
 import { prisma } from '@/lib/prisma'
 import { sendOrderCancelled } from '@/lib/email'
 import Stripe from 'stripe'
@@ -34,7 +34,7 @@ export async function POST(
     const { id: orderId } = await params
 
     // Get session for authentication
-    const session = await getServerSession(authOptions)
+    const session = await auth()
 
     if (!session?.user) {
       return NextResponse.json(

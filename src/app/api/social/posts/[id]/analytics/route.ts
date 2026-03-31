@@ -1,11 +1,11 @@
 /**
+import { auth } from '@/lib/auth'
  * Post Analytics API
  * GET /api/social/posts/[id]/analytics - Get analytics for a post
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+
 import { getPostAnalytics, getPostById } from '@/lib/db-actions/social/posts'
 
 export const dynamic = 'force-dynamic'
@@ -20,7 +20,7 @@ interface RouteParams {
  */
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await auth()
 
     if (!session?.user?.id) {
       return NextResponse.json(

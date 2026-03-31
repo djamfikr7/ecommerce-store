@@ -1,11 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
-import { AnimatePresence } from 'framer-motion'
-import { AuthProvider } from '@/components/providers/auth-provider'
-import { CartProviderWrapper } from '@/components/providers/cart-provider'
-import { WishlistProvider } from '@/components/wishlist/wishlist-context'
-import { Header } from '@/components/layout/header'
-import { AnalyticsProvider } from '@/components/analytics/analytics-provider'
+import { Providers } from '@/components/providers'
 import './globals.css'
 
 const inter = Inter({
@@ -13,7 +8,7 @@ const inter = Inter({
   variable: '--font-sans',
 })
 
-const metadata: Metadata = {
+export const metadata: Metadata = {
   title: {
     default: 'E-Commerce Store',
     template: '%s | E-Commerce Store',
@@ -36,17 +31,13 @@ const metadata: Metadata = {
   },
 }
 
-const viewport: Viewport = {
+export const viewport: Viewport = {
   themeColor: '#0f0f1a',
   width: 'device-width',
   initialScale: 1,
 }
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className="dark">
       <body
@@ -55,31 +46,8 @@ export default function RootLayout({
           background: 'linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%)',
         }}
       >
-        <AuthProvider>
-          <CartProviderWrapper>
-            <WishlistProvider>
-              <AnalyticsProvider>
-              {/* Skip to main content for accessibility */}
-              <a href="#main-content" className="skip-link">
-                Skip to main content
-              </a>
-
-              {/* Header */}
-              <Header />
-
-              {/* Main content */}
-              <AnimatePresence mode="wait">
-                <main id="main-content" role="main">
-                  {children}
-                </main>
-              </AnimatePresence>
-              </AnalyticsProvider>
-            </WishlistProvider>
-          </CartProviderWrapper>
-        </AuthProvider>
+        <Providers>{children}</Providers>
       </body>
     </html>
   )
 }
-
-export { metadata, viewport }

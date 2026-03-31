@@ -254,10 +254,10 @@ export const PLATFORM_LIMITS: Record<SocialPlatform, PlatformLimits> = {
 // Prisma Type Helpers
 // ============================================
 
-export type SocialPostBase = Prisma.SocialPostGetPayload<{}>
-export type SocialCampaignBase = Prisma.SocialCampaignGetPayload<{}>
-export type SocialCommentBase = Prisma.SocialCommentGetPayload<{}>
-export type AutomationWorkflowBase = Prisma.AutomationWorkflowGetPayload<{}>
-export type AutomationLogBase = Prisma.AutomationLogGetPayload<{}>
-export type ContentTemplateBase = Prisma.ContentTemplateGetPayload<{}>
-export type ScheduledTaskBase = Prisma.ScheduledTaskGetPayload<{}>
+export type SocialPostBase = Prisma.SocialPostGetPayload<Record<string, never>>
+export type SocialCampaignBase = Prisma.SocialCampaignGetPayload<Record<string, never>>
+export type SocialCommentBase = Prisma.SocialCommentGetPayload<Record<string, never>>
+export type AutomationWorkflowBase = Prisma.AutomationWorkflowGetPayload<Record<string, never>>
+export type AutomationLogBase = Prisma.AutomationLogGetPayload<Record<string, never>>
+export type ContentTemplateBase = Prisma.ContentTemplateGetPayload<Record<string, never>>
+export type ScheduledTaskBase = Prisma.ScheduledTaskGetPayload<Record<string, never>>

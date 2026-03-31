@@ -3,53 +3,63 @@
  * Server actions for client-side authentication operations
  */
 
-'use server';
+'use server'
 
-import { revalidatePath } from 'next/cache';
-import { redirect } from 'next/navigation';
-import { auth, signIn as nextAuthSignIn, signOut as nextAuthSignOut } from '@/lib/auth';
+import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
+import { auth, signIn as nextAuthSignIn, signOut as nextAuthSignOut } from '@/lib/auth'
 import {
   createUser,
   getUserByEmail,
   updateUserProfile,
   updateUserPassword,
-} from '@/lib/db-actions/auth';
+  createVerificationToken,
+  getVerificationCode,
+  verifyEmailToken,
+  verifyEmailCode,
+} from '@/lib/db-actions/auth'
 import {
   createAddress,
   getUserAddresses,
   updateAddress,
   deleteAddress,
   setDefaultAddress,
-} from '@/lib/db-actions/address';
+} from '@/lib/db-actions/address'
 import {
   registerSchema,
   loginSchema,
   updateProfileSchema,
   addressSchema,
   updateAddressSchema,
-} from '@/lib/validators/auth';
+} from '@/lib/validators/auth'
 import {
   InvalidCredentialsError,
   EmailExistsError,
   UserNotFoundError,
   ValidationError,
-} from '@/lib/errors/auth';
-import type { RegisterInput, LoginInput, UpdateProfileInput, AddressInput, UpdateAddressInput } from '@/lib/validators/auth';
+} from '@/lib/errors/auth'
+import type {
+  RegisterInput,
+  LoginInput,
+  UpdateProfileInput,
+  AddressInput,
+  UpdateAddressInput,
+} from '@/lib/validators/auth'
 
 // Validation helper
 function validateInput<T>(schema: { parse: (data: unknown) => T }, data: unknown): T {
   try {
-    return schema.parse(data);
+    return schema.parse(data)
   } catch (error: unknown) {
     if (error && typeof error === 'object' && 'errors' in error) {
-      const zodError = error as { errors: Array<{ message: string; path: string[] }> };
-      const firstError = zodError.errors[0];
+      const zodError = error as { errors: Array<{ message: string; path: string[] }> }
+      const firstError = zodError.errors[0]
       throw new ValidationError(
         firstError?.message || 'Validation failed',
-        firstError?.path?.[0]?.toString()
-      );
+        firstError?.path?.[0]?.toString(),
+      )
     }
-    throw new ValidationError('Validation failed');
+    throw new ValidationError('Validation failed')
   }
 }
 
@@ -61,18 +71,22 @@ export async function registerAction(formData: FormData) {
     email: formData.get('email') as string,
     password: formData.get('password') as string,
     name: formData.get('name') as string | undefined,
-  };
+  }
 
-  const validated = validateInput(registerSchema, data);
+  const validated = validateInput(registerSchema, data)
 
   try {
-    const user = await createUser(validated);
-    return { success: true, user: { id: user.id, email: user.email } };
+    const user = await createUser(validated)
+
+    // Send verification email
+    await sendVerificationEmailAction(user.email)
+
+    return { success: true, user: { id: user.id, email: user.email } }
   } catch (error) {
     if (error instanceof EmailExistsError) {
-      return { success: false, error: error.message };
+      return { success: false, error: error.message }
     }
-    throw error;
+    throw error
   }
 }
 
@@ -83,19 +97,19 @@ export async function signInAction(formData: FormData) {
   const data = {
     email: formData.get('email') as string,
     password: formData.get('password') as string,
-  };
+  }
 
-  const validated = validateInput(loginSchema, data);
+  const validated = validateInput(loginSchema, data)
 
   try {
     await nextAuthSignIn('credentials', {
       email: validated.email,
       password: validated.password,
       redirectTo: '/',
-    });
-    return { success: true };
+    })
+    return { success: true }
   } catch (error) {
-    return { success: false, error: 'Invalid email or password' };
+    return { success: false, error: 'Invalid email or password' }
   }
 }
 
@@ -103,22 +117,22 @@ export async function signInAction(formData: FormData) {
  * Sign in with OAuth provider
  */
 export async function signInWithOAuthAction(provider: 'google' | 'github', callbackUrl?: string) {
-  await nextAuthSignIn(provider, { callbackUrl });
+  await nextAuthSignIn(provider, { callbackUrl })
 }
 
 /**
  * Sign out
  */
 export async function signOutAction() {
-  await nextAuthSignOut({ redirectTo: '/login' });
+  await nextAuthSignOut({ redirectTo: '/login' })
 }
 
 /**
  * Get current session
  */
 export async function getSessionAction() {
-  const session = await auth();
-  return session;
+  const session = await auth()
+  return session
 }
 
 /**
@@ -129,20 +143,20 @@ export async function updateProfileAction(userId: string, formData: FormData) {
     name: formData.get('name') as string | null,
     image: formData.get('image') as string | null,
     phone: formData.get('phone') as string | null,
-  };
+  }
 
-  const validated = validateInput(updateProfileSchema, data);
+  const validated = validateInput(updateProfileSchema, data)
 
   try {
-    const user = await updateUserProfile(userId, validated);
-    revalidatePath('/account');
-    revalidatePath('/profile');
-    return { success: true, user };
+    const user = await updateUserProfile(userId, validated)
+    revalidatePath('/account')
+    revalidatePath('/profile')
+    return { success: true, user }
   } catch (error) {
     if (error instanceof UserNotFoundError) {
-      return { success: false, error: 'User not found' };
+      return { success: false, error: 'User not found' }
     }
-    throw error;
+    throw error
   }
 }
 
@@ -152,26 +166,26 @@ export async function updateProfileAction(userId: string, formData: FormData) {
 export async function updatePasswordAction(
   userId: string,
   currentPassword: string,
-  newPassword: string
+  newPassword: string,
 ) {
   // Validate new password
-  const passwordSchema = registerSchema.pick({ password: true });
-  validateInput(passwordSchema, { password: newPassword });
+  const passwordSchema = registerSchema.pick({ password: true })
+  validateInput(passwordSchema, { password: newPassword })
 
   try {
     // Verify current password first
-    const { authenticateUser } = await import('@/lib/db-actions/auth');
-    await authenticateUser((await auth())?.user?.email || '', currentPassword);
+    const { authenticateUser } = await import('@/lib/db-actions/auth')
+    await authenticateUser((await auth())?.user?.email || '', currentPassword)
 
     // Update password
-    await updateUserPassword(userId, newPassword);
-    revalidatePath('/account');
-    return { success: true };
+    await updateUserPassword(userId, newPassword)
+    revalidatePath('/account')
+    return { success: true }
   } catch (error) {
     if (error instanceof InvalidCredentialsError) {
-      return { success: false, error: 'Current password is incorrect' };
+      return { success: false, error: 'Current password is incorrect' }
     }
-    throw error;
+    throw error
   }
 }
 
@@ -193,19 +207,19 @@ export async function addAddressAction(userId: string, formData: FormData) {
     country: (formData.get('country') as string) || 'US',
     phone: formData.get('phone') as string | null,
     isDefault: formData.get('isDefault') === 'true',
-  };
+  }
 
-  const validated = validateInput(addressSchema, data);
+  const validated = validateInput(addressSchema, data)
 
   try {
-    const address = await createAddress(userId, validated);
-    revalidatePath('/account/addresses');
-    return { success: true, address };
+    const address = await createAddress(userId, validated)
+    revalidatePath('/account/addresses')
+    return { success: true, address }
   } catch (error) {
     if (error instanceof UserNotFoundError) {
-      return { success: false, error: 'User not found' };
+      return { success: false, error: 'User not found' }
     }
-    throw error;
+    throw error
   }
 }
 
@@ -213,18 +227,14 @@ export async function addAddressAction(userId: string, formData: FormData) {
  * Get user addresses
  */
 export async function getAddressesAction(userId: string) {
-  const addresses = await getUserAddresses(userId);
-  return addresses;
+  const addresses = await getUserAddresses(userId)
+  return addresses
 }
 
 /**
  * Update an address
  */
-export async function editAddressAction(
-  addressId: string,
-  userId: string,
-  formData: FormData
-) {
+export async function editAddressAction(addressId: string, userId: string, formData: FormData) {
   const data = {
     type: formData.get('type') as 'SHIPPING' | 'BILLING' | 'BOTH' | undefined,
     firstName: formData.get('firstName') as string | undefined,
@@ -236,24 +246,28 @@ export async function editAddressAction(
     postalCode: formData.get('postalCode') as string | undefined,
     country: formData.get('country') as string | undefined,
     phone: formData.get('phone') as string | null | undefined,
-    isDefault: formData.get('isDefault') === 'true' ? true :
-               formData.get('isDefault') === 'false' ? false : undefined,
-  };
+    isDefault:
+      formData.get('isDefault') === 'true'
+        ? true
+        : formData.get('isDefault') === 'false'
+          ? false
+          : undefined,
+  }
 
-  const validated = validateInput(updateAddressSchema, data);
+  const validated = validateInput(updateAddressSchema, data)
 
   try {
-    const address = await updateAddress(addressId, userId, validated);
-    revalidatePath('/account/addresses');
-    return { success: true, address };
+    const address = await updateAddress(addressId, userId, validated)
+    revalidatePath('/account/addresses')
+    return { success: true, address }
   } catch (error) {
     if (error && typeof error === 'object' && 'message' in error) {
-      const authError = error as { message: string };
+      const authError = error as { message: string }
       if (authError.message.includes('unauthorized')) {
-        return { success: false, error: 'You are not authorized to update this address' };
+        return { success: false, error: 'You are not authorized to update this address' }
       }
     }
-    throw error;
+    throw error
   }
 }
 
@@ -262,17 +276,17 @@ export async function editAddressAction(
  */
 export async function removeAddressAction(addressId: string, userId: string) {
   try {
-    await deleteAddress(addressId, userId);
-    revalidatePath('/account/addresses');
-    return { success: true };
+    await deleteAddress(addressId, userId)
+    revalidatePath('/account/addresses')
+    return { success: true }
   } catch (error) {
     if (error && typeof error === 'object' && 'message' in error) {
-      const authError = error as { message: string };
+      const authError = error as { message: string }
       if (authError.message.includes('unauthorized')) {
-        return { success: false, error: 'You are not authorized to delete this address' };
+        return { success: false, error: 'You are not authorized to delete this address' }
       }
     }
-    throw error;
+    throw error
   }
 }
 
@@ -281,16 +295,99 @@ export async function removeAddressAction(addressId: string, userId: string) {
  */
 export async function setDefaultAddressAction(addressId: string, userId: string) {
   try {
-    const address = await setDefaultAddress(addressId, userId);
-    revalidatePath('/account/addresses');
-    return { success: true, address };
+    const address = await setDefaultAddress(addressId, userId)
+    revalidatePath('/account/addresses')
+    return { success: true, address }
   } catch (error) {
     if (error && typeof error === 'object' && 'message' in error) {
-      const authError = error as { message: string };
+      const authError = error as { message: string }
       if (authError.message.includes('unauthorized')) {
-        return { success: false, error: 'You are not authorized to update this address' };
+        return { success: false, error: 'You are not authorized to update this address' }
       }
     }
-    throw error;
+    throw error
+  }
+}
+
+// Email Verification Actions
+
+/**
+ * Send verification email to user
+ */
+export async function sendVerificationEmailAction(email: string) {
+  try {
+    const user = await getUserByEmail(email)
+
+    if (!user) {
+      return { success: false, error: 'User not found' }
+    }
+
+    if (user.emailVerified) {
+      return { success: false, error: 'Email already verified' }
+    }
+
+    // Create verification token
+    const token = await createVerificationToken(email)
+    const code = await getVerificationCode(email)
+
+    if (!code) {
+      return { success: false, error: 'Failed to generate verification code' }
+    }
+
+    // Send verification email using Resend
+    const { Resend } = await import('resend')
+    const { render } = await import('@react-email/render')
+    const { VerifyEmail } = await import('@/lib/emails/verify-email')
+
+    const resend = new Resend(process.env.RESEND_API_KEY)
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    const verificationUrl = `${baseUrl}/verify-email?token=${token}&email=${encodeURIComponent(email)}`
+
+    const emailHtml = await render(
+      VerifyEmail({
+        userName: user.name || 'User',
+        verificationUrl,
+        verificationCode: code,
+      }),
+    )
+
+    await resend.emails.send({
+      from: process.env.EMAIL_FROM || 'noreply@voltstore.com',
+      to: email,
+      subject: 'Verify your email address',
+      html: emailHtml,
+    })
+
+    return { success: true }
+  } catch (error) {
+    console.error('Failed to send verification email:', error)
+    return { success: false, error: 'Failed to send verification email' }
+  }
+}
+
+/**
+ * Verify email with token or code
+ */
+export async function verifyEmailAction(data: { token?: string; code?: string; email?: string }) {
+  try {
+    let verified = false
+
+    if (data.token) {
+      verified = await verifyEmailToken(data.token)
+    } else if (data.code) {
+      verified = await verifyEmailCode(data.code, data.email)
+    } else {
+      return { success: false, error: 'Token or code required' }
+    }
+
+    if (!verified) {
+      return { success: false, error: 'Invalid or expired verification token' }
+    }
+
+    revalidatePath('/')
+    return { success: true }
+  } catch (error) {
+    console.error('Email verification failed:', error)
+    return { success: false, error: 'Verification failed' }
   }
 }

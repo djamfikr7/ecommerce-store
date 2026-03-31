@@ -10,7 +10,14 @@ import { Mail, Lock } from 'lucide-react'
 import { loginSchema, type LoginInput } from '@/lib/validators/auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card'
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter,
+} from '@/components/ui/card'
 import { SocialLoginButton, PasswordInput, FormError } from '@/components/auth/auth-forms'
 
 export default function LoginPage() {
@@ -31,14 +38,22 @@ export default function LoginPage() {
     setError(null)
 
     try {
-      // TODO: Integrate with NextAuth signIn
-      console.log('Login data:', data)
+      const { signIn } = await import('next-auth/react')
 
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      const result = await signIn('credentials', {
+        email: data.email,
+        password: data.password,
+        redirect: false,
+      })
+
+      if (result?.error) {
+        setError('Invalid email or password')
+        return
+      }
 
       // Redirect on success
       router.push('/')
+      router.refresh()
     } catch (err) {
       setError('Invalid email or password')
     } finally {
@@ -51,7 +66,7 @@ export default function LoginPage() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: 'easeOut' }}
-      className="w-full max-w-md mx-auto"
+      className="mx-auto w-full max-w-md"
     >
       <motion.div
         animate={{
@@ -66,10 +81,8 @@ export default function LoginPage() {
       >
         <Card className="p-8">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl gradient-text">Welcome Back</CardTitle>
-            <CardDescription>
-              Sign in to your account to continue
-            </CardDescription>
+            <CardTitle className="gradient-text text-2xl">Welcome Back</CardTitle>
+            <CardDescription>Sign in to your account to continue</CardDescription>
           </CardHeader>
 
           <CardContent className="space-y-6">
@@ -82,7 +95,7 @@ export default function LoginPage() {
             {/* Divider */}
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-border-default" />
+                <span className="border-border-default w-full border-t" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
                 <span className="bg-surface-elevated px-2 text-slate-500">
@@ -117,7 +130,7 @@ export default function LoginPage() {
                   </label>
                   <Link
                     href="/forgot-password"
-                    className="text-xs text-accent-primary hover:text-accent-primary-hover transition-colors"
+                    className="text-xs text-accent-primary transition-colors hover:text-accent-primary-hover"
                   >
                     Forgot password?
                   </Link>
@@ -149,7 +162,7 @@ export default function LoginPage() {
               Don't have an account?{' '}
               <Link
                 href="/register"
-                className="text-accent-primary hover:text-accent-primary-hover font-medium transition-colors"
+                className="font-medium text-accent-primary transition-colors hover:text-accent-primary-hover"
               >
                 Create one
               </Link>

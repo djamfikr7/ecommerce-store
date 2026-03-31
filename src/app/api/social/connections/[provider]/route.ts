@@ -1,11 +1,11 @@
 /**
+import { auth } from '@/lib/auth'
  * Social Connection by Provider API
  * DELETE /api/social/connections/[provider] - Disconnect a social account
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+
 import { disconnectSocialAccount, getUserConnections } from '@/lib/db-actions/social/connections'
 import { getProvider } from '@/lib/social/providers'
 
@@ -21,7 +21,7 @@ interface RouteParams {
  */
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await auth()
 
     if (!session?.user?.id) {
       return NextResponse.json(
@@ -56,7 +56,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
  */
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await auth()
 
     if (!session?.user?.id) {
       return NextResponse.json(

@@ -1,17 +1,22 @@
-'use client';
+'use client'
 
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Tag, Lock, Truck } from 'lucide-react';
-import { CartTotals } from './cart-context';
-import { formatPrice } from '@/lib/currency';
+import React, { useState } from 'react'
+import { motion } from 'framer-motion'
+import { Lock, Truck, ShieldCheck, CreditCard } from 'lucide-react'
+import { CartTotals } from './cart-context'
+import { formatPrice } from '@/lib/currency'
+import { CartCoupon } from './cart-coupon'
+import { cn } from '@/lib/utils'
 
 interface CartSummaryProps {
-  totals: CartTotals;
-  showCheckoutButton?: boolean;
-  children?: React.ReactNode;
-  isLoading?: boolean;
-  onCheckout?: () => void;
+  totals: CartTotals
+  showCheckoutButton?: boolean
+  children?: React.ReactNode
+  isLoading?: boolean
+  onCheckout?: () => void
+  appliedCoupon?: string | undefined
+  onApplyCoupon?: (code: string) => Promise<void>
+  onRemoveCoupon?: () => void
 }
 
 export function CartSummary({
@@ -20,34 +25,28 @@ export function CartSummary({
   children,
   isLoading = false,
   onCheckout,
+  appliedCoupon,
+  onApplyCoupon,
+  onRemoveCoupon,
 }: CartSummaryProps) {
-  const [promoCode, setPromoCode] = useState('');
-  const [isApplyingPromo, setIsApplyingPromo] = useState(false);
-
-  const handleApplyPromo = async () => {
-    if (!promoCode.trim()) return;
-    setIsApplyingPromo(true);
-    // TODO: Integrate with promo code API
-    setTimeout(() => setIsApplyingPromo(false), 1000);
-  };
-
-  const freeShippingThreshold = 100;
-  const isEligibleForFreeShipping = totals.subtotal >= freeShippingThreshold;
+  const freeShippingThreshold = 100
+  const isEligibleForFreeShipping = totals.subtotal >= freeShippingThreshold
+  const shippingProgress = Math.min((totals.subtotal / freeShippingThreshold) * 100, 100)
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className="rounded-2xl bg-white/5 backdrop-blur-sm p-6 sticky top-24"
+      className="sticky top-24 rounded-2xl bg-white/5 p-6 backdrop-blur-sm"
     >
-      <h3 className="text-lg font-bold text-white mb-6">Order Summary</h3>
+      <h3 className="mb-6 text-lg font-bold text-white">Order Summary</h3>
 
       {/* Line Items */}
-      <div className="space-y-4 pb-6 border-b border-white/10">
+      <div className="space-y-4 border-b border-white/10 pb-6">
         <div className="flex justify-between text-white/70">
           <span>Subtotal</span>
-          <span>{formatPrice(totals.subtotal)}</span>
+          <span className="font-medium text-white">{formatPrice(totals.subtotal)}</span>
         </div>
 
         <div className="flex justify-between text-white/70">
@@ -55,14 +54,14 @@ export function CartSummary({
           <span>{formatPrice(totals.tax)}</span>
         </div>
 
-        <div className="flex justify-between items-center">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-white/70">
-            <Truck className="w-4 h-4" />
+            <Truck className="h-4 w-4" />
             <span>Shipping</span>
           </div>
           <span>
             {isEligibleForFreeShipping ? (
-              <span className="text-green-400 font-semibold">FREE</span>
+              <span className="font-semibold text-green-400">FREE</span>
             ) : totals.shipping === 0 ? (
               <span className="text-white/50">Calculated at checkout</span>
             ) : (
@@ -83,48 +82,41 @@ export function CartSummary({
             <div className="text-sm text-white/50">
               Add {formatPrice(freeShippingThreshold - totals.subtotal)} more for free shipping
             </div>
-            <div className="mt-2 h-1.5 rounded-full bg-white/10 overflow-hidden">
+            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
               <motion.div
                 initial={{ width: 0 }}
-                animate={{ width: `${Math.min((totals.subtotal / freeShippingThreshold) * 100, 100)}%` }}
-                className="h-full rounded-full bg-gradient-to-r from-accent to-purple-500"
+                animate={{ width: `${shippingProgress}%` }}
+                transition={{ duration: 0.5, ease: 'easeOut' }}
+                className="h-full rounded-full bg-gradient-to-r from-accent-primary to-accent-secondary"
               />
             </div>
           </div>
         )}
       </div>
 
-      {/* Total */}
-      <div className="flex justify-between items-center py-6">
-        <span className="text-lg font-semibold text-white">Total</span>
-        <span className="text-2xl font-bold text-white">
-          {formatPrice(totals.total)}
-        </span>
-      </div>
-
-      {/* Promo Code */}
-      <div className="mb-6">
-        <label htmlFor="promo-code" className="flex items-center gap-2 text-sm text-white/50 mb-2">
-          <Tag className="w-4 h-4" />
-          Promo Code
-        </label>
-        <div className="flex gap-2">
-          <input
-            id="promo-code"
-            type="text"
-            value={promoCode}
-            onChange={(e) => setPromoCode(e.target.value)}
-            placeholder="Enter code"
-            className="flex-1 px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-white/30 focus:outline-none focus:border-accent transition-colors"
+      {/* Coupon Code */}
+      {onApplyCoupon && (
+        <div className="border-b border-white/10 py-6">
+          <CartCoupon
+            onApply={onApplyCoupon}
+            onRemove={onRemoveCoupon ?? undefined}
+            appliedCode={appliedCoupon}
+            isLoading={isLoading}
           />
-          <button
-            onClick={handleApplyPromo}
-            disabled={isApplyingPromo || !promoCode.trim()}
-            className="px-4 py-3 rounded-xl bg-white/10 text-white/70 hover:bg-white/20 disabled:opacity-50 transition-colors"
-          >
-            Apply
-          </button>
         </div>
+      )}
+
+      {/* Total */}
+      <div className="flex items-center justify-between py-6">
+        <span className="text-lg font-semibold text-white">Total</span>
+        <motion.span
+          key={totals.total}
+          initial={{ scale: 1.1 }}
+          animate={{ scale: 1 }}
+          className="text-2xl font-bold text-white"
+        >
+          {formatPrice(totals.total)}
+        </motion.span>
       </div>
 
       {/* Custom Content Slot */}
@@ -132,14 +124,23 @@ export function CartSummary({
 
       {/* Checkout Button */}
       {showCheckoutButton && (
-        <button
+        <motion.button
+          whileHover={{ y: -2, scale: 1.02 }}
+          whileTap={{ y: 1, scale: 0.98 }}
+          transition={{ type: 'spring', stiffness: 400, damping: 17 }}
           onClick={onCheckout}
           disabled={isLoading || totals.subtotal === 0}
-          className="w-full py-4 rounded-xl bg-accent text-white font-bold text-lg hover:bg-accent/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-accent/25 flex items-center justify-center gap-2"
+          className={cn(
+            'w-full rounded-xl py-4 text-lg font-bold transition-all',
+            'bg-accent-primary text-white',
+            'hover:shadow-accent-primary/25 hover:bg-accent-primary-hover hover:shadow-lg',
+            'disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:shadow-none',
+            'flex items-center justify-center gap-2',
+          )}
         >
           {isLoading ? (
             <>
-              <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+              <svg className="h-5 w-5 animate-spin" viewBox="0 0 24 24">
                 <circle
                   className="opacity-25"
                   cx="12"
@@ -159,20 +160,52 @@ export function CartSummary({
             </>
           ) : (
             <>
-              <Lock className="w-5 h-5" />
+              <Lock className="h-5 w-5" />
               Proceed to Checkout
             </>
           )}
-        </button>
+        </motion.button>
       )}
 
+      {/* Trust Badges */}
+      <div className="mt-6 border-t border-white/10 pt-6">
+        <div className="grid grid-cols-2 gap-3">
+          <div className="flex items-center gap-2 text-xs text-white/40">
+            <ShieldCheck className="h-4 w-4 text-green-400/70" />
+            <span>Secure checkout</span>
+          </div>
+          <div className="flex items-center gap-2 text-xs text-white/40">
+            <CreditCard className="h-4 w-4 text-blue-400/70" />
+            <span>Stripe payments</span>
+          </div>
+          <div className="flex items-center gap-2 text-xs text-white/40">
+            <Truck className="h-4 w-4 text-purple-400/70" />
+            <span>Free shipping $100+</span>
+          </div>
+          <div className="flex items-center gap-2 text-xs text-white/40">
+            <svg
+              className="h-4 w-4 text-yellow-400/70"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+            </svg>
+            <span>Worldwide delivery</span>
+          </div>
+        </div>
+      </div>
+
       {/* Security Note */}
-      <p className="flex items-center justify-center gap-2 text-xs text-white/40 mt-4">
-        <Lock className="w-3 h-3" />
+      <p className="mt-4 flex items-center justify-center gap-2 text-xs text-white/40">
+        <Lock className="h-3 w-3" />
         Secure checkout powered by Stripe
       </p>
     </motion.div>
-  );
+  )
 }
 
-export default CartSummary;
+export default CartSummary

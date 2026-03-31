@@ -1,7 +1,7 @@
 // GET /api/orders/[id]/tracking - Get tracking info for order
+import { auth } from '@/lib/auth'
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+
 import { getOrderTracking } from '@/lib/db-actions/order-tracking'
 
 interface RouteParams {
@@ -18,7 +18,7 @@ export async function GET(
     const { id: orderId } = await params
 
     // Get session for user verification
-    const session = await getServerSession(authOptions)
+    const session = await auth()
     const userId = session?.user?.id
 
     const trackingInfo = await getOrderTracking(orderId, userId)

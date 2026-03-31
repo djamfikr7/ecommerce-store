@@ -3,15 +3,16 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 
-export type Locale = 'en' | 'es' | 'fr' | 'de' | 'ja' | 'zh'
+export type Locale = 'en' | 'es' | 'fr' | 'ar' | 'de' | 'ja' | 'zh'
 
-export const locales: Locale[] = ['en', 'es', 'fr', 'de', 'ja', 'zh']
+export const locales: Locale[] = ['en', 'es', 'fr', 'ar', 'de', 'ja', 'zh']
 export const defaultLocale: Locale = 'en'
 
 export const localeNames: Record<Locale, string> = {
   en: 'English',
   es: 'Espanol',
   fr: 'Francais',
+  ar: 'العربية',
   de: 'Deutsch',
   ja: '日本語',
   zh: '中文',
@@ -21,10 +22,13 @@ export const localeFlags: Record<Locale, string> = {
   en: 'US',
   es: 'ES',
   fr: 'FR',
+  ar: 'SA',
   de: 'DE',
   ja: 'JP',
   zh: 'CN',
 }
+
+export const RTL_LOCALES: Locale[] = ['ar']
 
 interface LocaleContextType {
   locale: Locale
@@ -91,8 +95,8 @@ export function LocaleProvider({ children, initialLocale }: LocaleProviderProps)
   }, [initialLocale])
 
   useEffect(() => {
-    // Set document language
     document.documentElement.lang = locale
+    document.documentElement.dir = RTL_LOCALES.includes(locale) ? 'rtl' : 'ltr'
   }, [locale])
 
   const setLocale = (newLocale: Locale) => {
@@ -100,7 +104,7 @@ export function LocaleProvider({ children, initialLocale }: LocaleProviderProps)
     setCookie(LOCALE_COOKIE, newLocale)
 
     // Navigate to the same path with new locale
-    const currentPath = pathname.replace(/^\/(en|es|fr|de|ja|zh)/, '')
+    const currentPath = pathname.replace(/^\/(en|es|fr|ar|de|ja|zh)/, '')
     const newPath = `/${newLocale}${currentPath || '/'}`
     router.push(newPath)
   }

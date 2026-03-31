@@ -1,12 +1,12 @@
 /**
+import { auth } from '@/lib/auth'
  * Social Connections API
  * GET /api/social/connections - Get user's social connections
  * POST /api/social/connections - Connect a new social account
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+
 import {
   getUserConnections,
   connectSocialAccount,
@@ -23,7 +23,7 @@ export const dynamic = 'force-dynamic'
  */
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await auth()
 
     if (!session?.user?.id) {
       return NextResponse.json(
@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await auth()
 
     if (!session?.user?.id) {
       return NextResponse.json(

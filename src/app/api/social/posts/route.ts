@@ -1,12 +1,12 @@
 /**
+import { auth } from '@/lib/auth'
  * Social Posts API
  * GET /api/social/posts - List user's posts
  * POST /api/social/posts - Create a new post
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+
 import {
   createSocialPost,
   getUserPosts,
@@ -26,7 +26,7 @@ export const dynamic = 'force-dynamic'
  */
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await auth()
 
     if (!session?.user?.id) {
       return NextResponse.json(
@@ -80,7 +80,7 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await auth()
 
     if (!session?.user?.id) {
       return NextResponse.json(

@@ -1,8 +1,14 @@
 'use client'
 
-import React, { createContext, useContext, useReducer, useEffect, useCallback, useState } from 'react'
+import React, {
+  createContext,
+  useContext,
+  useReducer,
+  useEffect,
+  useCallback,
+  useState,
+} from 'react'
 import { useRouter } from 'next/navigation'
-import { revalidatePath } from 'next/cache'
 import type { WishlistWithItems, WishlistItemWithProduct } from '@/types/wishlist'
 
 // Types
@@ -109,7 +115,9 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
       // Check for guest wishlist in localStorage
       const guestWishlist = isClient ? localStorage.getItem(GUEST_WISHLIST_KEY) : null
 
-      const response = await fetch(`/api/wishlist${guestWishlist ? `?guestWishlist=${encodeURIComponent(guestWishlist)}` : ''}`)
+      const response = await fetch(
+        `/api/wishlist${guestWishlist ? `?guestWishlist=${encodeURIComponent(guestWishlist)}` : ''}`,
+      )
 
       if (!response.ok) {
         if (response.status === 401) {
@@ -152,65 +160,72 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
     }
   }, [isClient])
 
-  const addToWishlist = useCallback(async (productId: string, variantId?: string) => {
-    try {
-      const guestWishlist = isClient ? localStorage.getItem(GUEST_WISHLIST_KEY) : null
+  const addToWishlist = useCallback(
+    async (productId: string, variantId?: string) => {
+      try {
+        const guestWishlist = isClient ? localStorage.getItem(GUEST_WISHLIST_KEY) : null
 
-      const response = await fetch('/api/wishlist/items', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ productId, variantId, guestWishlist }),
-      })
+        const response = await fetch('/api/wishlist/items', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ productId, variantId, guestWishlist }),
+        })
 
-      if (!response.ok) {
-        throw new Error('Failed to add to wishlist')
+        if (!response.ok) {
+          throw new Error('Failed to add to wishlist')
+        }
+
+        const { wishlist: updatedWishlist, item } = await response.json()
+
+        if (updatedWishlist.guestWishlistId && isClient) {
+          localStorage.setItem(GUEST_WISHLIST_KEY, updatedWishlist.guestWishlistId)
+        }
+
+        dispatch({ type: 'SET_WISHLIST', payload: updatedWishlist })
+
+        router.refresh()
+      } catch (error) {
+        dispatch({
+          type: 'SET_ERROR',
+          payload: error instanceof Error ? error.message : 'Failed to add to wishlist',
+        })
+        throw error
       }
+    },
+    [isClient],
+  )
 
-      const { wishlist: updatedWishlist, item } = await response.json()
+  const removeFromWishlist = useCallback(
+    async (itemId: string) => {
+      // Optimistic update
+      dispatch({ type: 'REMOVE_ITEM', payload: itemId })
 
-      if (updatedWishlist.guestWishlistId && isClient) {
-        localStorage.setItem(GUEST_WISHLIST_KEY, updatedWishlist.guestWishlistId)
+      try {
+        const guestWishlist = isClient ? localStorage.getItem(GUEST_WISHLIST_KEY) : null
+
+        const response = await fetch(
+          `/api/wishlist/items/${itemId}?guestWishlist=${guestWishlist || ''}`,
+          {
+            method: 'DELETE',
+          },
+        )
+
+        if (!response.ok) {
+          throw new Error('Failed to remove from wishlist')
+        }
+
+        router.refresh()
+      } catch (error) {
+        // Rollback
+        await fetchWishlist()
+        dispatch({
+          type: 'SET_ERROR',
+          payload: error instanceof Error ? error.message : 'Failed to remove from wishlist',
+        })
       }
-
-      dispatch({ type: 'SET_WISHLIST', payload: updatedWishlist })
-
-      revalidatePath('/wishlist')
-      revalidatePath('/')
-    } catch (error) {
-      dispatch({
-        type: 'SET_ERROR',
-        payload: error instanceof Error ? error.message : 'Failed to add to wishlist',
-      })
-      throw error
-    }
-  }, [isClient])
-
-  const removeFromWishlist = useCallback(async (itemId: string) => {
-    // Optimistic update
-    dispatch({ type: 'REMOVE_ITEM', payload: itemId })
-
-    try {
-      const guestWishlist = isClient ? localStorage.getItem(GUEST_WISHLIST_KEY) : null
-
-      const response = await fetch(`/api/wishlist/items/${itemId}?guestWishlist=${guestWishlist || ''}`, {
-        method: 'DELETE',
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to remove from wishlist')
-      }
-
-      revalidatePath('/wishlist')
-      revalidatePath('/')
-    } catch (error) {
-      // Rollback
-      await fetchWishlist()
-      dispatch({
-        type: 'SET_ERROR',
-        payload: error instanceof Error ? error.message : 'Failed to remove from wishlist',
-      })
-    }
-  }, [fetchWishlist, isClient])
+    },
+    [fetchWishlist, isClient],
+  )
 
   const isInWishlist = useCallback(
     (productId: string, variantId?: string): boolean => {
@@ -218,18 +233,16 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
       return state.wishlist.items.some(
         (item) =>
           item.productId === productId &&
-          (variantId ? item.variantId === variantId : !item.variantId)
+          (variantId ? item.variantId === variantId : !item.variantId),
       )
     },
-    [state.wishlist]
+    [state.wishlist],
   )
 
   const toggleWishlist = useCallback(
     async (productId: string, variantId?: string) => {
       const item = state.wishlist?.items.find(
-        (i) =>
-          i.productId === productId &&
-          (variantId ? i.variantId === variantId : !i.variantId)
+        (i) => i.productId === productId && (variantId ? i.variantId === variantId : !i.variantId),
       )
 
       if (item) {
@@ -238,7 +251,7 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
         await addToWishlist(productId, variantId)
       }
     },
-    [state.wishlist, addToWishlist, removeFromWishlist]
+    [state.wishlist, addToWishlist, removeFromWishlist],
   )
 
   const clearWishlist = useCallback(async () => {
@@ -259,8 +272,7 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
         localStorage.removeItem(GUEST_WISHLIST_KEY)
       }
 
-      revalidatePath('/wishlist')
-      revalidatePath('/')
+      router.refresh()
     } catch (error) {
       await fetchWishlist()
       dispatch({

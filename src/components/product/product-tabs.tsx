@@ -19,7 +19,7 @@ export function ProductTabs({
   reviewAverage,
 }: ProductTabsProps) {
   const [activeTab, setActiveTab] = useState<'description' | 'specifications' | 'reviews'>(
-    'description'
+    'description',
   )
 
   const tabs = [
@@ -46,7 +46,7 @@ export function ProductTabs({
   return (
     <div className="neo-card">
       {/* Tab buttons */}
-      <div className="flex border-b border-border-subtle" role="tablist">
+      <div className="border-border-subtle flex border-b" role="tablist">
         {tabs.map((tab) => (
           <button
             key={tab.id}
@@ -54,9 +54,7 @@ export function ProductTabs({
             className={cn(
               'flex items-center gap-2 px-6 py-4 text-sm font-medium transition-colors',
               'relative focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary',
-              activeTab === tab.id
-                ? 'text-accent-primary'
-                : 'text-slate-400 hover:text-slate-300'
+              activeTab === tab.id ? 'text-accent-primary' : 'text-slate-400 hover:text-slate-300',
             )}
             role="tab"
             aria-selected={activeTab === tab.id}
@@ -67,10 +65,10 @@ export function ProductTabs({
             {tab.count !== null && (
               <span
                 className={cn(
-                  'ml-1 px-2 py-0.5 rounded-full text-xs',
+                  'ml-1 rounded-full px-2 py-0.5 text-xs',
                   activeTab === tab.id
                     ? 'bg-accent-primary/20 text-accent-primary'
-                    : 'bg-surface-elevated text-slate-400'
+                    : 'bg-surface-elevated text-slate-400',
                 )}
               >
                 {tab.count}
@@ -99,9 +97,7 @@ export function ProductTabs({
           id={`panel-${activeTab}`}
           aria-labelledby={`tab-${activeTab}`}
         >
-          {activeTab === 'description' && (
-            <DescriptionPanel description={description} />
-          )}
+          {activeTab === 'description' && <DescriptionPanel description={description} />}
 
           {activeTab === 'specifications' && (
             <SpecificationsPanel specifications={specifications} />
@@ -119,44 +115,41 @@ export function ProductTabs({
 function DescriptionPanel({ description }: { description?: string | null }) {
   if (!description) {
     return (
-      <div className="text-center py-8 text-slate-400">
+      <div className="py-8 text-center text-slate-400">
         No description available for this product.
       </div>
     )
   }
 
-  // Simple markdown-like formatting
   const formattedDescription = description.split('\n').map((line, i) => {
-    // Handle headers
     if (line.startsWith('### ')) {
       return (
-        <h4 key={i} className="text-lg font-semibold text-slate-100 mt-6 mb-3 first:mt-0">
+        <h4 key={i} className="mb-3 mt-6 text-lg font-semibold text-slate-100 first:mt-0">
           {line.replace('### ', '')}
         </h4>
       )
     }
     if (line.startsWith('## ')) {
       return (
-        <h3 key={i} className="text-xl font-semibold text-slate-100 mt-8 mb-4 first:mt-0">
+        <h3 key={i} className="mb-4 mt-8 text-xl font-semibold text-slate-100 first:mt-0">
           {line.replace('## ', '')}
         </h3>
       )
     }
     if (line.startsWith('# ')) {
       return (
-        <h2 key={i} className="text-2xl font-bold text-slate-100 mt-8 mb-4 first:mt-0">
+        <h2 key={i} className="mb-4 mt-8 text-2xl font-bold text-slate-100 first:mt-0">
           {line.replace('# ', '')}
         </h2>
       )
     }
-    // Handle bold text
     const parts = line.split(/(\*\*[^*]+\*\*)/g)
     return (
-      <p key={i} className="text-slate-300 leading-relaxed mb-4">
+      <p key={i} className="mb-4 leading-relaxed text-slate-300">
         {parts.map((part, j) => {
           if (part.startsWith('**') && part.endsWith('**')) {
             return (
-              <strong key={j} className="text-slate-100 font-semibold">
+              <strong key={j} className="font-semibold text-slate-100">
                 {part.replace(/\*\*/g, '')}
               </strong>
             )
@@ -170,10 +163,14 @@ function DescriptionPanel({ description }: { description?: string | null }) {
   return <div className="prose prose-invert max-w-none">{formattedDescription}</div>
 }
 
-function SpecificationsPanel({ specifications }: { specifications?: Record<string, string | number> }) {
+function SpecificationsPanel({
+  specifications,
+}: {
+  specifications?: Record<string, string | number>
+}) {
   if (!specifications || Object.keys(specifications).length === 0) {
     return (
-      <div className="text-center py-8 text-slate-400">
+      <div className="py-8 text-center text-slate-400">
         No specifications available for this product.
       </div>
     )
@@ -190,10 +187,10 @@ function SpecificationsPanel({ specifications }: { specifications?: Record<strin
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.05 }}
-            className={index !== entries.length - 1 ? 'border-b border-border-subtle' : ''}
+            className={index !== entries.length - 1 ? 'border-border-subtle border-b' : ''}
           >
-            <td className="py-4 pr-4 text-sm text-slate-400 w-1/3">{key}</td>
-            <td className="py-4 text-sm text-slate-100 font-medium">{value}</td>
+            <td className="w-1/3 py-4 pr-4 text-sm text-slate-400">{key}</td>
+            <td className="py-4 text-sm font-medium text-slate-100">{value}</td>
           </motion.tr>
         ))}
       </tbody>
@@ -201,15 +198,21 @@ function SpecificationsPanel({ specifications }: { specifications?: Record<strin
   )
 }
 
-function ReviewsPanel({ reviewCount, reviewAverage }: { reviewCount: number; reviewAverage?: number }) {
+function ReviewsPanel({
+  reviewCount,
+  reviewAverage,
+}: {
+  reviewCount: number
+  reviewAverage?: number
+}) {
   return (
-    <div className="text-center py-8">
+    <div className="py-8 text-center">
       {reviewCount === 0 ? (
         <div className="space-y-4">
           <p className="text-slate-400">No reviews yet for this product.</p>
           <a
-            href="#write-review"
-            className="inline-flex items-center gap-2 text-accent-primary hover:text-accent-primary-hover transition-colors"
+            href="#reviews"
+            className="inline-flex items-center gap-2 text-accent-primary transition-colors hover:text-accent-primary-hover"
           >
             Be the first to write a review
           </a>
@@ -225,7 +228,7 @@ function ReviewsPanel({ reviewCount, reviewAverage }: { reviewCount: number; rev
                     key={star}
                     className={`h-5 w-5 ${
                       star <= Math.round(reviewAverage || 0)
-                        ? 'text-accent-warning fill-accent-warning'
+                        ? 'fill-accent-warning text-accent-warning'
                         : 'text-slate-600'
                     }`}
                     viewBox="0 0 24 24"
@@ -234,12 +237,12 @@ function ReviewsPanel({ reviewCount, reviewAverage }: { reviewCount: number; rev
                   </svg>
                 ))}
               </div>
-              <p className="text-sm text-slate-400 mt-1">{reviewCount} reviews</p>
+              <p className="mt-1 text-sm text-slate-400">{reviewCount} reviews</p>
             </div>
           </div>
           <a
             href="#reviews"
-            className="inline-block mt-4 text-accent-primary hover:text-accent-primary-hover transition-colors"
+            className="mt-4 inline-block text-accent-primary transition-colors hover:text-accent-primary-hover"
           >
             Read all reviews
           </a>
