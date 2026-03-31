@@ -49,10 +49,10 @@ export function VariantSelector({ variants, selectedVariant, onSelect }: Variant
         String(v.attributes[attrName]) === attrValue &&
         (selectedVariant?.attributes &&
         Object.entries(selectedVariant.attributes).every(
-          ([key, val]) => key === attrName || String(v.attributes[key]) === String(val)
-        ) ?
-        v.stockQuantity > 0 :
-        v.stockQuantity > 0)
+          ([key, val]) => key === attrName || String(v.attributes[key]) === String(val),
+        )
+          ? v.stockQuantity > 0
+          : v.stockQuantity > 0),
     )
 
     if (matchingVariant) {
@@ -62,9 +62,7 @@ export function VariantSelector({ variants, selectedVariant, onSelect }: Variant
 
   // Check if an attribute value is available (at least one variant with it is in stock)
   const isAttributeAvailable = (attrName: string, attrValue: string) => {
-    return variants.some(
-      (v) => String(v.attributes[attrName]) === attrValue && v.stockQuantity > 0
-    )
+    return variants.some((v) => String(v.attributes[attrName]) === attrValue && v.stockQuantity > 0)
   }
 
   return (
@@ -75,12 +73,12 @@ export function VariantSelector({ variants, selectedVariant, onSelect }: Variant
 
         return (
           <div key={attrName}>
-            <div className="flex items-center justify-between mb-3">
+            <div className="mb-3 flex items-center justify-between">
               <span className="text-sm font-medium text-slate-100">{attrLabel}</span>
               {attrName.toLowerCase() === 'size' && (
                 <button
                   onClick={() => setShowSizeGuide(true)}
-                  className="text-xs text-accent-primary hover:text-accent-primary-hover transition-colors flex items-center gap-1"
+                  className="flex items-center gap-1 text-xs text-accent-primary transition-colors hover:text-accent-primary-hover"
                 >
                   <Ruler className="h-3 w-3" />
                   Size Guide
@@ -112,18 +110,18 @@ export function VariantSelector({ variants, selectedVariant, onSelect }: Variant
                     onClick={() => handleAttributeSelect(attrName, value)}
                     disabled={!isAvailable}
                     className={cn(
-                      'neo-raised-sm px-4 py-2 rounded-lg text-sm font-medium transition-all',
+                      'neo-raised-sm rounded-lg px-4 py-2 text-sm font-medium transition-all',
                       'focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary',
                       isSelected
-                        ? 'bg-accent-primary/20 text-accent-primary border border-accent-primary neo-glow-hover'
+                        ? 'bg-accent-primary/20 neo-glow-hover border border-accent-primary text-accent-primary'
                         : 'text-slate-300 hover:text-slate-100',
-                      !isAvailable && 'opacity-50 cursor-not-allowed line-through'
+                      !isAvailable && 'cursor-not-allowed line-through opacity-50',
                     )}
                     aria-pressed={isSelected}
                     aria-label={`${value}${!isAvailable ? ' (out of stock)' : ''}`}
                   >
                     {value}
-                    {!isAvailable && <X className="inline-block ml-1 h-3 w-3" />}
+                    {!isAvailable && <X className="ml-1 inline-block h-3 w-3" />}
                   </button>
                 )
               })}
@@ -139,7 +137,7 @@ export function VariantSelector({ variants, selectedVariant, onSelect }: Variant
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
             onClick={() => setShowSizeGuide(false)}
           >
             <motion.div
@@ -147,59 +145,65 @@ export function VariantSelector({ variants, selectedVariant, onSelect }: Variant
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="neo-card p-6 max-w-lg w-full max-h-[80vh] overflow-auto"
+              className="neo-card max-h-[80vh] w-full max-w-lg overflow-auto p-6"
             >
-              <div className="flex items-center justify-between mb-4">
+              <div className="mb-4 flex items-center justify-between">
                 <h3 className="text-lg font-semibold text-slate-100">Size Guide</h3>
                 <Button variant="ghost" size="icon" onClick={() => setShowSizeGuide(false)}>
-                  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <svg
+                    className="h-5 w-5"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
                     <path d="M18 6L6 18M6 6l12 12" />
                   </svg>
                 </Button>
               </div>
-              <p className="text-sm text-slate-400 mb-4">
+              <p className="mb-4 text-sm text-slate-400">
                 Use this guide to find your perfect fit. Measurements are in inches.
               </p>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-border-subtle">
-                      <th className="py-2 px-3 text-left text-slate-300">Size</th>
-                      <th className="py-2 px-3 text-left text-slate-300">Chest</th>
-                      <th className="py-2 px-3 text-left text-slate-300">Waist</th>
-                      <th className="py-2 px-3 text-left text-slate-300">Length</th>
+                    <tr className="border-border-subtle border-b">
+                      <th className="px-3 py-2 text-left text-slate-300">Size</th>
+                      <th className="px-3 py-2 text-left text-slate-300">Chest</th>
+                      <th className="px-3 py-2 text-left text-slate-300">Waist</th>
+                      <th className="px-3 py-2 text-left text-slate-300">Length</th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr className="border-b border-border-subtle">
-                      <td className="py-2 px-3 text-slate-100">XS</td>
-                      <td className="py-2 px-3 text-slate-300">32-34</td>
-                      <td className="py-2 px-3 text-slate-300">26-28</td>
-                      <td className="py-2 px-3 text-slate-300">30</td>
+                    <tr className="border-border-subtle border-b">
+                      <td className="px-3 py-2 text-slate-100">XS</td>
+                      <td className="px-3 py-2 text-slate-300">32-34</td>
+                      <td className="px-3 py-2 text-slate-300">26-28</td>
+                      <td className="px-3 py-2 text-slate-300">30</td>
                     </tr>
-                    <tr className="border-b border-border-subtle">
-                      <td className="py-2 px-3 text-slate-100">S</td>
-                      <td className="py-2 px-3 text-slate-300">34-36</td>
-                      <td className="py-2 px-3 text-slate-300">28-30</td>
-                      <td className="py-2 px-3 text-slate-300">31</td>
+                    <tr className="border-border-subtle border-b">
+                      <td className="px-3 py-2 text-slate-100">S</td>
+                      <td className="px-3 py-2 text-slate-300">34-36</td>
+                      <td className="px-3 py-2 text-slate-300">28-30</td>
+                      <td className="px-3 py-2 text-slate-300">31</td>
                     </tr>
-                    <tr className="border-b border-border-subtle">
-                      <td className="py-2 px-3 text-slate-100">M</td>
-                      <td className="py-2 px-3 text-slate-300">38-40</td>
-                      <td className="py-2 px-3 text-slate-300">32-34</td>
-                      <td className="py-2 px-3 text-slate-300">32</td>
+                    <tr className="border-border-subtle border-b">
+                      <td className="px-3 py-2 text-slate-100">M</td>
+                      <td className="px-3 py-2 text-slate-300">38-40</td>
+                      <td className="px-3 py-2 text-slate-300">32-34</td>
+                      <td className="px-3 py-2 text-slate-300">32</td>
                     </tr>
-                    <tr className="border-b border-border-subtle">
-                      <td className="py-2 px-3 text-slate-100">L</td>
-                      <td className="py-2 px-3 text-slate-300">42-44</td>
-                      <td className="py-2 px-3 text-slate-300">36-38</td>
-                      <td className="py-2 px-3 text-slate-300">33</td>
+                    <tr className="border-border-subtle border-b">
+                      <td className="px-3 py-2 text-slate-100">L</td>
+                      <td className="px-3 py-2 text-slate-300">42-44</td>
+                      <td className="px-3 py-2 text-slate-300">36-38</td>
+                      <td className="px-3 py-2 text-slate-300">33</td>
                     </tr>
                     <tr>
-                      <td className="py-2 px-3 text-slate-100">XL</td>
-                      <td className="py-2 px-3 text-slate-300">46-48</td>
-                      <td className="py-2 px-3 text-slate-300">40-42</td>
-                      <td className="py-2 px-3 text-slate-300">34</td>
+                      <td className="px-3 py-2 text-slate-100">XL</td>
+                      <td className="px-3 py-2 text-slate-300">46-48</td>
+                      <td className="px-3 py-2 text-slate-300">40-42</td>
+                      <td className="px-3 py-2 text-slate-300">34</td>
                     </tr>
                   </tbody>
                 </table>
@@ -245,7 +249,7 @@ function ColorSwatch({ color, isSelected, isAvailable, onClick }: ColorSwatchPro
 
   const colorValue = getColorValue(color)
   const isLightColor = ['white', 'ivory', 'cream', 'beige', 'yellow'].some(
-    (c) => colorName.toLowerCase() === c
+    (c) => color.toLowerCase() === c,
   )
 
   return (
@@ -253,10 +257,10 @@ function ColorSwatch({ color, isSelected, isAvailable, onClick }: ColorSwatchPro
       onClick={onClick}
       disabled={!isAvailable}
       className={cn(
-        'relative w-10 h-10 rounded-full transition-all',
+        'relative h-10 w-10 rounded-full transition-all',
         'focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface-base',
-        isSelected && 'ring-2 ring-accent-primary ring-offset-2 ring-offset-surface-base neo-glow',
-        !isAvailable && 'opacity-50 cursor-not-allowed'
+        isSelected && 'neo-glow ring-2 ring-accent-primary ring-offset-2 ring-offset-surface-base',
+        !isAvailable && 'cursor-not-allowed opacity-50',
       )}
       style={{ backgroundColor: colorValue }}
       aria-label={`${color}${!isAvailable ? ' (out of stock)' : ''}`}
@@ -266,7 +270,7 @@ function ColorSwatch({ color, isSelected, isAvailable, onClick }: ColorSwatchPro
         <Check
           className={cn(
             'absolute inset-0 m-auto h-5 w-5',
-            isLightColor ? 'text-gray-800' : 'text-white'
+            isLightColor ? 'text-gray-800' : 'text-white',
           )}
         />
       )}
@@ -274,7 +278,7 @@ function ColorSwatch({ color, isSelected, isAvailable, onClick }: ColorSwatchPro
         <X
           className={cn(
             'absolute inset-0 m-auto h-5 w-5',
-            isLightColor ? 'text-gray-400' : 'text-white/70'
+            isLightColor ? 'text-gray-400' : 'text-white/70',
           )}
         />
       )}

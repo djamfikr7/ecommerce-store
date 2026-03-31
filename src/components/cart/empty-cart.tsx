@@ -1,19 +1,19 @@
-'use client';
+'use client'
 
-import React from 'react';
-import Link from 'next/link';
-import { motion } from 'framer-motion';
-import { ShoppingBag, ArrowRight } from 'lucide-react';
+import React from 'react'
+import Link from 'next/link'
+import { motion } from 'framer-motion'
+import { ShoppingBag, ArrowRight } from 'lucide-react'
 
 interface EmptyCartProps {
-  title?: string;
-  description?: string;
-  showContinueShopping?: boolean;
+  title?: string
+  description?: string
+  showContinueShopping?: boolean
 }
 
 export function EmptyCart({
   title = 'Your cart is empty',
-  description = 'Looks like you haven\'t added anything to your cart yet.',
+  description = "Looks like you haven't added anything to your cart yet.",
   showContinueShopping = true,
 }: EmptyCartProps) {
   return (
@@ -21,7 +21,7 @@ export function EmptyCart({
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.5, ease: 'easeOut' }}
-      className="flex flex-col items-center justify-center py-16 px-4"
+      className="flex flex-col items-center justify-center px-4 py-16"
     >
       {/* Illustration */}
       <motion.div
@@ -34,12 +34,12 @@ export function EmptyCart({
         }}
         className="relative mb-8"
       >
-        <div className="w-32 h-32 rounded-full bg-gradient-to-br from-accent/20 to-purple-500/20 flex items-center justify-center">
+        <div className="neo-raised-lg from-accent-primary/20 to-accent-secondary/20 flex h-32 w-32 items-center justify-center rounded-full bg-gradient-to-br">
           <svg
             viewBox="0 0 80 80"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
-            className="w-16 h-16 text-white/30"
+            className="h-16 w-16 text-white/30"
           >
             <path
               d="M20 16H60L56 52H24L20 16Z"
@@ -64,12 +64,12 @@ export function EmptyCart({
         <motion.div
           animate={{ rotate: 360 }}
           transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
-          className="absolute -top-2 -right-2 w-8 h-8 rounded-full border-2 border-dashed border-accent/30"
+          className="border-accent-primary/30 absolute -right-2 -top-2 h-8 w-8 rounded-full border-2 border-dashed"
         />
         <motion.div
           animate={{ rotate: -360 }}
           transition={{ duration: 15, repeat: Infinity, ease: 'linear' }}
-          className="absolute -bottom-1 -left-3 w-6 h-6 rounded-full bg-purple-500/20"
+          className="bg-accent-secondary/20 absolute -bottom-1 -left-3 h-6 w-6 rounded-full"
         />
       </motion.div>
 
@@ -78,7 +78,7 @@ export function EmptyCart({
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="text-2xl font-bold text-white mb-3 text-center"
+        className="mb-3 text-center text-2xl font-bold text-white"
       >
         {title}
       </motion.h2>
@@ -87,7 +87,7 @@ export function EmptyCart({
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
-        className="text-white/50 text-center max-w-md mb-8"
+        className="mb-8 max-w-md text-center text-white/50"
       >
         {description}
       </motion.p>
@@ -101,10 +101,10 @@ export function EmptyCart({
         >
           <Link
             href="/products"
-            className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-accent text-white font-bold text-lg hover:bg-accent/90 transition-all shadow-lg shadow-accent/25 hover:shadow-accent/40 hover:-translate-y-0.5"
+            className="neo-raised hover:neo-glow inline-flex items-center gap-2 rounded-xl bg-accent-primary px-8 py-4 text-lg font-bold text-white transition-all hover:-translate-y-0.5 hover:bg-accent-primary-hover"
           >
             Start Shopping
-            <ArrowRight className="w-5 h-5" />
+            <ArrowRight className="h-5 w-5" />
           </Link>
         </motion.div>
       )}
@@ -116,16 +116,16 @@ export function EmptyCart({
         transition={{ delay: 0.6 }}
         className="mt-8 flex items-center gap-4"
       >
-        <span className="text-white/30 text-sm">or</span>
+        <span className="text-sm text-white/30">or</span>
         <Link
           href="/categories"
-          className="text-accent hover:text-accent/80 text-sm font-medium transition-colors"
+          className="text-sm font-medium text-accent-primary transition-colors hover:text-accent-primary-hover"
         >
           Browse Categories
         </Link>
       </motion.div>
     </motion.div>
-  );
+  )
 }
 
-export default EmptyCart;
+export default EmptyCart

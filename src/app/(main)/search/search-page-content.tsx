@@ -1,15 +1,17 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
+import { motion } from 'framer-motion'
+import { Search, SlidersHorizontal } from 'lucide-react'
 import { SearchBar } from '@/components/search/search-bar'
 import { SearchFiltersComponent } from '@/components/search/search-filters'
-import { SearchResults } from '@/components/search/search-results'
+import { SearchResultsGrid } from '@/components/search/search-results-grid'
+import { NoResults } from '@/components/search/no-results'
 import { Button } from '@/components/ui/button'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { searchProductsFull, type SearchFilters } from '@/lib/actions/search'
+import { searchProductsFull, getSearchSuggestions, type SearchFilters } from '@/lib/actions/search'
 import { getCategories } from '@/lib/db-actions/products'
-import type { ProductCard, CategoryWithCount } from '@/types/shop'
+import type { ProductCard, CategoryWithCount } from '@/types/products'
 
 export function SearchPageContent() {
   const searchParams = useSearchParams()
@@ -22,6 +24,9 @@ export function SearchPageContent() {
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [pageSize] = useState(20)
+  const [suggestions, setSuggestions] = useState<string[]>([])
+  const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false)
+
   const [filters, setFilters] = useState<SearchFilters>(() => {
     const initialFilters: SearchFilters = {
       sort: (searchParams.get('sort') as SearchFilters['sort']) || 'relevance',
@@ -66,6 +71,14 @@ export function SearchPageContent() {
       const result = await searchProductsFull(query, filters, page, pageSize)
       setProducts(result.products)
       setTotal(result.total)
+
+      // Fetch suggestions when no results
+      if (result.total === 0) {
+        const suggs = await getSearchSuggestions(query)
+        setSuggestions(suggs)
+      } else {
+        setSuggestions([])
+      }
     } catch (error) {
       console.error('Search error:', error)
       setProducts([])
@@ -80,7 +93,7 @@ export function SearchPageContent() {
     performSearch()
   }, [performSearch])
 
-  // Update URL when filters change
+  // Sync URL
   useEffect(() => {
     const params = new URLSearchParams()
     if (query) params.set('q', query)
@@ -90,10 +103,11 @@ export function SearchPageContent() {
     if (filters.maxPrice) params.set('maxPrice', filters.maxPrice.toString())
     if (filters.minRating) params.set('minRating', filters.minRating.toString())
     if (filters.inStock) params.set('inStock', 'true')
+    if (page > 1) params.set('page', page.toString())
 
     const newUrl = params.toString() ? `/search?${params.toString()}` : '/search'
     router.replace(newUrl, { scroll: false })
-  }, [query, filters, router])
+  }, [query, filters, page, router])
 
   const handleSearch = (newQuery: string) => {
     setQuery(newQuery)
@@ -105,118 +119,149 @@ export function SearchPageContent() {
     setPage(1)
   }
 
-  const handleSortChange = (sort: SearchFilters['sort']) => {
-    const newFilters = { ...filters }
-    if (sort) {
-      newFilters.sort = sort
-    } else {
-      delete newFilters.sort
-    }
-    setFilters(newFilters)
+  const handlePageChange = useCallback((newPage: number) => {
+    setPage(newPage)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }, [])
+
+  const handleSuggestionClick = (suggestion: string) => {
+    setQuery(suggestion)
     setPage(1)
   }
 
   const totalPages = Math.ceil(total / pageSize)
 
+  const activeFilterCount = useMemo(
+    () =>
+      Object.keys(filters).filter(
+        (key) => key !== 'sort' && filters[key as keyof SearchFilters] !== undefined,
+      ).length,
+    [filters],
+  )
+
   return (
     <div className="space-y-6">
       {/* Search Bar */}
-      <div className="neo-card p-6">
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="neo-card p-6"
+      >
         <SearchBar
           onSearch={handleSearch}
           placeholder="Search for products..."
           autoFocus={!query}
         />
-      </div>
+      </motion.div>
 
-      {/* Sort Options */}
-      {query && (
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-slate-400">Sort by:</span>
-            <select
-              value={filters.sort || 'relevance'}
-              onChange={(e) => handleSortChange(e.target.value as SearchFilters['sort'])}
-              className="neo-inset rounded-lg px-4 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-accent-primary"
-            >
-              <option value="relevance">Relevance</option>
-              <option value="newest">Newest</option>
-              <option value="price-asc">Price: Low to High</option>
-              <option value="price-desc">Price: High to Low</option>
-              <option value="rating">Highest Rated</option>
-              <option value="popular">Most Popular</option>
-            </select>
+      {/* Empty state: no query */}
+      {!query && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="neo-card p-12 text-center"
+        >
+          <div className="neo-raised mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-surface-elevated">
+            <Search className="h-10 w-10 text-slate-400" />
           </div>
-        </div>
+          <h2 className="mb-2 text-2xl font-semibold text-slate-100">Search our store</h2>
+          <p className="mx-auto max-w-md text-slate-400">
+            Enter a search term above to find products across our catalog of 10,000+ items.
+          </p>
+        </motion.div>
       )}
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
-        {/* Filters Sidebar */}
-        <aside className="lg:col-span-1">
-          <SearchFiltersComponent
-            filters={filters}
-            onFiltersChange={handleFiltersChange}
-            categories={categories}
-          />
-        </aside>
-
-        {/* Results */}
-        <main className="lg:col-span-3">
-          <SearchResults products={products} isLoading={isLoading} query={query} total={total} />
-
-          {/* Pagination */}
-          {!isLoading && totalPages > 1 && (
-            <div className="mt-8 flex items-center justify-center gap-2">
+      {/* Results section */}
+      {query && (
+        <>
+          {/* Toolbar */}
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex flex-wrap items-center justify-between gap-4"
+          >
+            <div className="flex items-center gap-4">
               <Button
                 variant="outline"
-                size="sm"
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
+                className="lg:hidden"
+                onClick={() => setIsMobileFilterOpen(true)}
               >
-                <ChevronLeft className="h-4 w-4" />
-                Previous
+                <SlidersHorizontal className="mr-2 h-4 w-4" />
+                Filters
+                {activeFilterCount > 0 && (
+                  <span className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-accent-primary text-xs text-white">
+                    {activeFilterCount}
+                  </span>
+                )}
               </Button>
-
-              <div className="flex items-center gap-1">
-                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                  let pageNum: number
-                  if (totalPages <= 5) {
-                    pageNum = i + 1
-                  } else if (page <= 3) {
-                    pageNum = i + 1
-                  } else if (page >= totalPages - 2) {
-                    pageNum = totalPages - 4 + i
-                  } else {
-                    pageNum = page - 2 + i
-                  }
-
-                  return (
-                    <Button
-                      key={pageNum}
-                      variant={page === pageNum ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setPage(pageNum)}
-                      className="min-w-[40px]"
-                    >
-                      {pageNum}
-                    </Button>
-                  )
-                })}
-              </div>
-
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-              >
-                Next
-                <ChevronRight className="h-4 w-4" />
-              </Button>
+              <p className="text-sm text-slate-400">
+                {isLoading
+                  ? 'Searching...'
+                  : `${total.toLocaleString()} ${total === 1 ? 'result' : 'results'} for "${query}"`}
+              </p>
             </div>
-          )}
-        </main>
-      </div>
+
+            {/* Sort dropdown */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-slate-400">Sort by:</span>
+              <select
+                value={filters.sort || 'relevance'}
+                onChange={(e) => {
+                  const val = e.target.value
+                  setFilters({
+                    ...filters,
+                    sort: val as 'relevance' | 'price-asc' | 'price-desc' | 'rating' | 'newest',
+                  })
+                  setPage(1)
+                }}
+                className="neo-inset rounded-lg px-4 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-accent-primary"
+              >
+                <option value="relevance">Relevance</option>
+                <option value="newest">Newest</option>
+                <option value="price-asc">Price: Low to High</option>
+                <option value="price-desc">Price: High to Low</option>
+                <option value="rating">Highest Rated</option>
+              </select>
+            </div>
+          </motion.div>
+
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
+            {/* Filters Sidebar */}
+            <aside className="lg:col-span-1">
+              <SearchFiltersComponent
+                filters={filters}
+                onFiltersChange={handleFiltersChange}
+                categories={categories}
+                isMobileOpen={isMobileFilterOpen}
+                onMobileClose={() => setIsMobileFilterOpen(false)}
+              />
+            </aside>
+
+            {/* Results */}
+            <main className="min-w-0 lg:col-span-3">
+              {isLoading || products.length > 0 ? (
+                <SearchResultsGrid
+                  products={products}
+                  isLoading={isLoading}
+                  currentPage={page}
+                  totalPages={totalPages}
+                  onPageChange={handlePageChange}
+                />
+              ) : (
+                <NoResults
+                  query={query}
+                  suggestions={suggestions}
+                  onSuggestionClick={handleSuggestionClick}
+                  onClearFilters={() => {
+                    setFilters({ sort: 'relevance' })
+                    setPage(1)
+                  }}
+                />
+              )}
+            </main>
+          </div>
+        </>
+      )}
     </div>
   )
 }

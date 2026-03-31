@@ -1,15 +1,15 @@
-'use client';
+'use client'
 
-import React from 'react';
-import { Minus, Plus } from 'lucide-react';
+import React from 'react'
+import { Minus, Plus } from 'lucide-react'
 
 interface QuantitySelectorProps {
-  value: number;
-  onChange: (value: number) => void | Promise<void>;
-  min?: number;
-  max?: number;
-  size?: 'sm' | 'md';
-  disabled?: boolean;
+  value: number
+  onChange: (value: number) => void | Promise<void>
+  min?: number
+  max?: number
+  size?: 'sm' | 'md'
+  disabled?: boolean
 }
 
 export function QuantitySelector({
@@ -22,28 +22,28 @@ export function QuantitySelector({
 }: QuantitySelectorProps) {
   const handleDecrement = () => {
     if (value > min) {
-      onChange(value - 1);
+      onChange(value - 1)
     }
-  };
+  }
 
   const handleIncrement = () => {
     if (value < max) {
-      onChange(value + 1);
+      onChange(value + 1)
     }
-  };
+  }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = parseInt(e.target.value, 10);
+    const newValue = parseInt(e.target.value, 10)
     if (!isNaN(newValue) && newValue >= min && newValue <= max) {
-      onChange(newValue);
+      onChange(newValue)
     }
-  };
+  }
 
-  const isSmall = size === 'sm';
-  const buttonSize = isSmall ? 'w-7 h-7' : 'w-10 h-10';
-  const iconSize = isSmall ? 'w-3 h-3' : 'w-4 h-4';
-  const fontSize = isSmall ? 'text-sm' : 'text-base';
-  const minWidth = isSmall ? 'w-10' : 'w-14';
+  const isSmall = size === 'sm'
+  const buttonSize = isSmall ? 'w-7 h-7' : 'w-10 h-10'
+  const iconSize = isSmall ? 'w-3 h-3' : 'w-4 h-4'
+  const fontSize = isSmall ? 'text-sm' : 'text-base'
+  const minWidth = isSmall ? 'w-10' : 'w-14'
 
   return (
     <div
@@ -56,7 +56,7 @@ export function QuantitySelector({
         type="button"
         onClick={handleDecrement}
         disabled={disabled || value <= min}
-        className={`${buttonSize} rounded-xl bg-white/5 hover:bg-white/10 disabled:hover:bg-white/5 disabled:cursor-not-allowed text-white/70 hover:text-white disabled:text-white/30 transition-all flex items-center justify-center`}
+        className={`${buttonSize} neo-flat hover:neo-raised-sm disabled:hover:neo-flat flex items-center justify-center rounded-xl text-white/70 transition-all hover:text-white disabled:cursor-not-allowed disabled:text-white/30`}
         aria-label="Decrease quantity"
       >
         <Minus className={iconSize} />
@@ -70,7 +70,7 @@ export function QuantitySelector({
         min={min}
         max={max}
         disabled={disabled}
-        className={`${minWidth} ${fontSize} h-10 text-center bg-transparent border-none text-white font-semibold focus:outline-none focus:ring-2 focus:ring-accent rounded-lg`}
+        className={`${minWidth} ${fontSize} h-10 rounded-lg border-none bg-transparent text-center font-semibold text-white focus:outline-none focus:ring-2 focus:ring-accent-primary`}
         aria-label="Quantity"
       />
 
@@ -79,13 +79,13 @@ export function QuantitySelector({
         type="button"
         onClick={handleIncrement}
         disabled={disabled || value >= max}
-        className={`${buttonSize} rounded-xl bg-white/5 hover:bg-white/10 disabled:hover:bg-white/5 disabled:cursor-not-allowed text-white/70 hover:text-white disabled:text-white/30 transition-all flex items-center justify-center`}
+        className={`${buttonSize} neo-flat hover:neo-raised-sm disabled:hover:neo-flat flex items-center justify-center rounded-xl text-white/70 transition-all hover:text-white disabled:cursor-not-allowed disabled:text-white/30`}
         aria-label="Increase quantity"
       >
         <Plus className={iconSize} />
       </button>
     </div>
-  );
+  )
 }
 
-export default QuantitySelector;
+export default QuantitySelector

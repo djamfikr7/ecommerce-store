@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import {
   BarChart,
   Bar,
@@ -11,96 +11,127 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts'
-import { SalesData, formatCurrency, formatPercentage } from '@/lib/analytics/calculations'
+import { formatCurrency, formatPercentage } from '@/lib/analytics/calculations'
 
 interface SalesChartProps {
-  data: SalesData[]
+  data?: { date: string; sales: number; previousPeriod: number; change: number }[]
   currency?: string
 }
 
+function generateSalesData(days: number) {
+  return Array.from({ length: days }, (_, i) => {
+    const date = new Date()
+    date.setDate(date.getDate() - (days - 1 - i))
+    const sales = Math.floor(Math.random() * 5000) + 3000
+    const previousPeriod = Math.floor(Math.random() * 5000) + 2500
+    return {
+      date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      sales,
+      previousPeriod,
+      change: previousPeriod > 0 ? ((sales - previousPeriod) / previousPeriod) * 100 : 0,
+    }
+  })
+}
+
 export function SalesChart({ data, currency = 'USD' }: SalesChartProps) {
+  const [showComparison, setShowComparison] = useState(true)
+
   const chartData = useMemo(() => {
-    return data.map((item) => ({
-      ...item,
-      date: new Date(item.date).toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-      }),
-    }))
+    if (data && data.length > 0) {
+      return data.map((item) => ({
+        ...item,
+        date: new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      }))
+    }
+    return generateSalesData(14)
   }, [data])
 
   const totalChange = useMemo(() => {
-    const currentTotal = data.reduce((sum, item) => sum + item.sales, 0)
-    const previousTotal = data.reduce((sum, item) => sum + item.previousPeriod, 0)
-    return previousTotal > 0 ? ((currentTotal - previousTotal) / previousTotal) * 100 : 0
-  }, [data])
-
-  const avgChange = useMemo(() => {
-    const validChanges = data.filter((item) => !isNaN(item.change) && isFinite(item.change))
-    return validChanges.length > 0
-      ? validChanges.reduce((sum, item) => sum + item.change, 0) / validChanges.length
-      : 0
-  }, [data])
+    const current = chartData.reduce((s, d) => s + d.sales, 0)
+    const previous = chartData.reduce((s, d) => s + d.previousPeriod, 0)
+    return previous > 0 ? ((current - previous) / previous) * 100 : 0
+  }, [chartData])
 
   return (
-    <div className="rounded-2xl bg-gradient-to-br from-gray-900 to-gray-800 p-6 shadow-[inset_0_2px_8px_rgba(0,0,0,0.3),0_8px_24px_rgba(0,0,0,0.4)]">
-      <div className="mb-6">
-        <h3 className="mb-4 text-xl font-bold text-white">Sales Comparison</h3>
-        <div className="grid grid-cols-2 gap-4">
-          <div className="rounded-xl bg-gradient-to-br from-gray-800 to-gray-900 p-4 shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]">
-            <p className="mb-1 text-sm text-gray-400">Total Change</p>
-            <p
-              className={`text-2xl font-bold ${totalChange >= 0 ? 'text-green-400' : 'text-red-400'}`}
-            >
-              {formatPercentage(totalChange)}
-            </p>
-          </div>
-          <div className="rounded-xl bg-gradient-to-br from-gray-800 to-gray-900 p-4 shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]">
-            <p className="mb-1 text-sm text-gray-400">Avg Daily Change</p>
-            <p
-              className={`text-2xl font-bold ${avgChange >= 0 ? 'text-green-400' : 'text-red-400'}`}
-            >
-              {formatPercentage(avgChange)}
-            </p>
-          </div>
+    <div className="rounded-2xl border border-slate-700/50 bg-slate-800/30 p-6 shadow-xl backdrop-blur-sm">
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <h3 className="text-lg font-semibold text-white">Sales Comparison</h3>
+        <div className="flex items-center gap-3">
+          <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-400">
+            <input
+              type="checkbox"
+              checked={showComparison}
+              onChange={(e) => setShowComparison(e.target.checked)}
+              className="rounded border-slate-600 bg-slate-700 text-cyan-500 focus:ring-cyan-500/50 focus:ring-offset-0"
+            />
+            Show previous period
+          </label>
+        </div>
+      </div>
+
+      <div className="mb-6 grid grid-cols-2 gap-4">
+        <div className="rounded-xl bg-slate-900/40 p-4 shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]">
+          <p className="mb-1 text-xs text-slate-400">Period Change</p>
+          <p
+            className={`text-xl font-bold ${totalChange >= 0 ? 'text-emerald-400' : 'text-red-400'}`}
+          >
+            {formatPercentage(totalChange)}
+          </p>
+        </div>
+        <div className="rounded-xl bg-slate-900/40 p-4 shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]">
+          <p className="mb-1 text-xs text-slate-400">Total Sales</p>
+          <p className="text-xl font-bold text-white">
+            {formatCurrency(
+              chartData.reduce((s, d) => s + d.sales, 0),
+              currency,
+            )}
+          </p>
         </div>
       </div>
 
       <ResponsiveContainer width="100%" height={350}>
         <BarChart data={chartData}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-          <XAxis dataKey="date" stroke="#9ca3af" style={{ fontSize: '12px' }} />
-          <YAxis
-            stroke="#9ca3af"
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
+          <XAxis
+            dataKey="date"
+            stroke="#64748b"
             style={{ fontSize: '12px' }}
-            tickFormatter={(value) => formatCurrency(value, currency)}
+            tickLine={false}
+            axisLine={false}
+          />
+          <YAxis
+            stroke="#64748b"
+            style={{ fontSize: '12px' }}
+            tickLine={false}
+            axisLine={false}
+            tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`}
           />
           <Tooltip
             contentStyle={{
-              backgroundColor: '#1f2937',
-              border: 'none',
-              borderRadius: '8px',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+              backgroundColor: 'rgba(15, 23, 42, 0.95)',
+              border: '1px solid rgba(148, 163, 184, 0.2)',
+              borderRadius: '12px',
             }}
-            labelStyle={{ color: '#f3f4f6' }}
-            formatter={(value: any, name: any) => {
-              if (typeof value === 'number') {
-                return [
-                  formatCurrency(value, currency),
-                  name === 'sales' ? 'Current Period' : 'Previous Period',
-                ]
-              }
-              return [value, name]
+            labelStyle={{ color: '#e2e8f0' }}
+            formatter={(value: unknown, name: unknown) => {
+              const num = typeof value === 'number' ? value : 0
+              const key = typeof name === 'string' ? name : ''
+              return [
+                formatCurrency(num, currency),
+                key === 'sales' ? 'Current Period' : 'Previous Period',
+              ]
             }}
           />
-          <Legend wrapperStyle={{ color: '#9ca3af' }} />
-          <Bar
-            dataKey="previousPeriod"
-            fill="#6b7280"
-            radius={[8, 8, 0, 0]}
-            name="Previous Period"
-          />
-          <Bar dataKey="sales" fill="#10b981" radius={[8, 8, 0, 0]} name="Current Period" />
+          {showComparison && (
+            <Bar
+              dataKey="previousPeriod"
+              fill="#475569"
+              radius={[6, 6, 0, 0]}
+              name="Previous Period"
+            />
+          )}
+          <Bar dataKey="sales" fill="#10b981" radius={[6, 6, 0, 0]} name="Current Period" />
+          {showComparison && <Legend wrapperStyle={{ color: '#94a3b8', fontSize: '12px' }} />}
         </BarChart>
       </ResponsiveContainer>
     </div>

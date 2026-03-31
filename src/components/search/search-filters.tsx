@@ -13,6 +13,8 @@ interface SearchFiltersProps {
   onFiltersChange: (filters: SearchFilters) => void
   categories?: CategoryWithCount[]
   className?: string
+  isMobileOpen?: boolean
+  onMobileClose?: () => void
 }
 
 export function SearchFiltersComponent({
@@ -20,8 +22,16 @@ export function SearchFiltersComponent({
   onFiltersChange,
   categories = [],
   className,
+  isMobileOpen: externalIsOpen,
+  onMobileClose,
 }: SearchFiltersProps) {
-  const [isOpen, setIsOpen] = useState(false)
+  const [internalIsOpen, setInternalIsOpen] = useState(false)
+  const isOpen = externalIsOpen ?? internalIsOpen
+  const setIsOpen = onMobileClose
+    ? (open: boolean) => {
+        if (!open) onMobileClose()
+      }
+    : setInternalIsOpen
   const [localFilters, setLocalFilters] = useState<SearchFilters>(filters)
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     category: true,

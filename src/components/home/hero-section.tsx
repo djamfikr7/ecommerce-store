@@ -1,14 +1,59 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { ArrowRight, Sparkles, ShoppingBag, TrendingUp } from 'lucide-react'
+import { ArrowRight, Sparkles, ShoppingBag, TrendingUp, Zap, Shield, Truck } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import { Button3D } from '@/components/ui/button-3d'
+
+const floatingCards = [
+  {
+    icon: ShoppingBag,
+    title: 'Premium Quality',
+    description: 'Handpicked products from trusted brands worldwide',
+    gradient: 'from-accent-primary/20 to-accent-secondary/20',
+    iconBg: 'bg-accent-primary/30',
+    iconColor: 'text-accent-primary',
+    yRange: [0, -20, 0],
+    rotateRange: [-2, 2, -2],
+    duration: 6,
+    position: 'right-0 top-0',
+    size: 'h-72 w-56',
+  },
+  {
+    icon: Truck,
+    title: 'Fast Delivery',
+    description: 'Get your orders delivered within 2-3 business days',
+    gradient: 'from-accent-secondary/20 to-accent-info/20',
+    iconBg: 'bg-accent-secondary/30',
+    iconColor: 'text-accent-secondary',
+    yRange: [0, 20, 0],
+    rotateRange: [2, -2, 2],
+    duration: 7,
+    delay: 0.5,
+    position: 'bottom-16 left-0',
+    size: 'h-72 w-56',
+  },
+  {
+    icon: Zap,
+    title: '24/7 Support',
+    description: 'Round-the-clock customer assistance',
+    gradient: 'from-accent-info/20 to-accent-success/20',
+    iconBg: 'bg-accent-info/30',
+    iconColor: 'text-accent-info',
+    yRange: [0, -15, 0],
+    rotateRange: [1, -1, 1],
+    duration: 5,
+    delay: 1,
+    position: 'left-16 top-44',
+    size: 'h-44 w-44',
+    centered: true,
+  },
+]
 
 export function HeroSection() {
   return (
     <section className="relative overflow-hidden py-20 md:py-32">
-      {/* Animated gradient background */}
       <div className="absolute inset-0 -z-10">
         <motion.div
           className="absolute inset-0 opacity-30"
@@ -30,7 +75,6 @@ export function HeroSection() {
 
       <div className="container-neo">
         <div className="grid items-center gap-12 lg:grid-cols-2">
-          {/* Left content */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -77,11 +121,11 @@ export function HeroSection() {
               className="flex flex-wrap gap-4"
             >
               <Link href="/products">
-                <Button size="lg" className="group">
+                <Button3D size="lg">
                   <ShoppingBag className="mr-2 h-5 w-5" />
                   Shop Now
-                  <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
-                </Button>
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Button3D>
               </Link>
 
               <Link href="/products?sort=trending">
@@ -92,7 +136,6 @@ export function HeroSection() {
               </Link>
             </motion.div>
 
-            {/* Stats */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -114,84 +157,72 @@ export function HeroSection() {
             </motion.div>
           </motion.div>
 
-          {/* Right content - 3D floating cards */}
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
             className="relative hidden lg:block"
           >
-            <div className="relative h-[600px]">
-              {/* Floating card 1 */}
-              <motion.div
-                animate={{
-                  y: [0, -20, 0],
-                  rotate: [-2, 2, -2],
-                }}
-                transition={{
-                  duration: 6,
-                  repeat: Infinity,
-                  ease: 'easeInOut',
-                }}
-                className="neo-card from-accent-primary/20 to-accent-secondary/20 absolute right-0 top-0 h-80 w-64 bg-gradient-to-br p-6"
-              >
-                <div className="flex h-full flex-col justify-between">
-                  <div className="space-y-2">
-                    <div className="neo-raised-sm bg-accent-primary/30 flex h-12 w-12 items-center justify-center rounded-xl">
-                      <ShoppingBag className="h-6 w-6 text-accent-primary" />
-                    </div>
-                    <h3 className="text-xl font-semibold">Premium Quality</h3>
-                    <p className="text-sm text-slate-400">
-                      Handpicked products from trusted brands
-                    </p>
+            <div className="relative h-[580px]">
+              {floatingCards.map((card) => (
+                <motion.div
+                  key={card.title}
+                  animate={{
+                    y: card.yRange,
+                    rotate: card.rotateRange,
+                  }}
+                  transition={{
+                    duration: card.duration,
+                    repeat: Infinity,
+                    ease: 'easeInOut',
+                    delay: card.delay ?? 0,
+                  }}
+                  className={`neo-card bg-gradient-to-br ${card.gradient} absolute ${card.position} ${card.size} p-6`}
+                >
+                  <div
+                    className={`flex h-full flex-col ${card.centered ? 'items-center justify-center text-center' : 'justify-between'} space-y-2`}
+                  >
+                    {card.centered ? (
+                      <>
+                        <div className="text-gradient text-4xl font-bold">
+                          <card.icon className="mb-2 h-10 w-10 text-accent-info" />
+                        </div>
+                        <div>
+                          <div className="text-gradient text-3xl font-bold">24/7</div>
+                          <p className="text-sm text-slate-400">{card.title}</p>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="space-y-2">
+                          <div
+                            className={`neo-raised-sm flex h-12 w-12 items-center justify-center rounded-xl ${card.iconBg}`}
+                          >
+                            <card.icon className={`h-6 w-6 ${card.iconColor}`} />
+                          </div>
+                          <h3 className="text-xl font-semibold">{card.title}</h3>
+                          <p className="text-sm text-slate-400">{card.description}</p>
+                        </div>
+                      </>
+                    )}
                   </div>
-                </div>
-              </motion.div>
+                </motion.div>
+              ))}
 
-              {/* Floating card 2 */}
               <motion.div
                 animate={{
-                  y: [0, 20, 0],
-                  rotate: [2, -2, 2],
+                  y: [0, -10, 0],
+                  scale: [1, 1.05, 1],
                 }}
                 transition={{
-                  duration: 7,
+                  duration: 4,
                   repeat: Infinity,
                   ease: 'easeInOut',
-                  delay: 0.5,
                 }}
-                className="neo-card from-accent-secondary/20 to-accent-info/20 absolute bottom-20 left-0 h-80 w-64 bg-gradient-to-br p-6"
+                className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
               >
-                <div className="flex h-full flex-col justify-between">
-                  <div className="space-y-2">
-                    <div className="neo-raised-sm bg-accent-secondary/30 flex h-12 w-12 items-center justify-center rounded-xl">
-                      <Sparkles className="h-6 w-6 text-accent-secondary" />
-                    </div>
-                    <h3 className="text-xl font-semibold">Fast Delivery</h3>
-                    <p className="text-sm text-slate-400">
-                      Get your orders delivered within 2-3 days
-                    </p>
-                  </div>
-                </div>
-              </motion.div>
-
-              {/* Floating card 3 */}
-              <motion.div
-                animate={{
-                  y: [0, -15, 0],
-                  rotate: [1, -1, 1],
-                }}
-                transition={{
-                  duration: 5,
-                  repeat: Infinity,
-                  ease: 'easeInOut',
-                  delay: 1,
-                }}
-                className="neo-card from-accent-info/20 to-accent-success/20 absolute left-20 top-40 h-48 w-48 bg-gradient-to-br p-4"
-              >
-                <div className="flex h-full flex-col items-center justify-center space-y-2 text-center">
-                  <div className="text-gradient text-4xl font-bold">24/7</div>
-                  <p className="text-sm text-slate-400">Customer Support</p>
+                <div className="neo-card from-accent-primary/10 to-accent-secondary/10 flex h-32 w-32 items-center justify-center rounded-full bg-gradient-to-br">
+                  <Shield className="h-12 w-12 text-accent-primary" />
                 </div>
               </motion.div>
             </div>

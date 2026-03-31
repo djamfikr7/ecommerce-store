@@ -20,6 +20,11 @@ export {
   SettingsToggle,
 } from './settings-form'
 
-// Admin Modal Components
+// Admin Order Components
+export { OrderTable, type Order, type OrderStatus } from './order-table'
+export { OrderStatusSelector } from './order-status-selector'
+export { OrderRefund } from './order-refund'
+
+// Admin Modal Components (legacy - kept for backwards compat)
 export { OrderStatusModal } from './order-status-modal'
 export { RefundModal } from './refund-modal'

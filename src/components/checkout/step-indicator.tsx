@@ -1,127 +1,115 @@
-'use client';
+'use client'
 
-import React from 'react';
-import { motion } from 'framer-motion';
-import { Check } from 'lucide-react';
+import React from 'react'
+import { motion } from 'framer-motion'
+import { Check, Truck, CreditCard, FileCheck } from 'lucide-react'
 
-interface Step {
-  id: number;
-  label: string;
-  shortLabel?: string;
+export type CheckoutStep = 'shipping' | 'payment' | 'review'
+
+interface StepConfig {
+  id: CheckoutStep
+  label: string
+  icon: typeof Truck
 }
+
+const steps: StepConfig[] = [
+  { id: 'shipping', label: 'Shipping', icon: Truck },
+  { id: 'payment', label: 'Payment', icon: CreditCard },
+  { id: 'review', label: 'Review', icon: FileCheck },
+]
 
 interface StepIndicatorProps {
-  currentStep: number;
-  steps: Step[];
+  currentStep: CheckoutStep
+  completedSteps: CheckoutStep[]
+  onStepClick?: (step: CheckoutStep) => void
 }
 
-export function StepIndicator({ currentStep, steps }: StepIndicatorProps) {
+export function StepIndicator({ currentStep, completedSteps, onStepClick }: StepIndicatorProps) {
+  const currentIndex = steps.findIndex((s) => s.id === currentStep)
+
   return (
-    <nav aria-label="Checkout progress" className="w-full">
-      <ol className="flex items-center justify-center">
+    <nav aria-label="Checkout progress" className="w-full py-6">
+      <div className="mx-auto flex max-w-2xl items-center justify-between">
         {steps.map((step, index) => {
-          const isActive = step.id === currentStep;
-          const isCompleted = step.id < currentStep;
-          const isUpcoming = step.id > currentStep;
+          const isActive = step.id === currentStep
+          const isCompleted = completedSteps.includes(step.id)
+          const Icon = step.icon
+          const isClickable = isCompleted && onStepClick
 
           return (
-            <li key={step.id} className="flex items-center">
-              {/* Step Circle */}
-              <motion.div
-                initial={false}
-                animate={{
-                  scale: isActive ? 1.1 : 1,
-                }}
-                className={`
-                  relative flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-full
-                  transition-all duration-300
-                  ${isCompleted ? 'bg-accent' : ''}
-                  ${isActive ? 'bg-accent shadow-lg shadow-accent/50' : ''}
-                  ${isUpcoming ? 'bg-white/5 border-2 border-white/20' : ''}
-                `}
-              >
-                {isCompleted ? (
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                  >
-                    <Check className="w-5 h-5 text-white" />
-                  </motion.div>
-                ) : (
-                  <span
-                    className={`
-                      text-sm sm:text-base font-bold
-                      ${isActive ? 'text-white' : ''}
-                      ${isUpcoming ? 'text-white/40' : ''}
-                    `}
-                  >
-                    {step.id}
-                  </span>
-                )}
+            <div key={step.id} className="flex flex-1 items-center">
+              <div className="flex flex-1 flex-col items-center">
+                <motion.button
+                  type="button"
+                  onClick={isClickable ? () => onStepClick(step.id) : undefined}
+                  disabled={!isClickable}
+                  initial={false}
+                  animate={{ scale: isActive ? 1.1 : 1 }}
+                  whileHover={isClickable ? { scale: 1.05 } : undefined}
+                  className={`relative flex h-12 w-12 items-center justify-center rounded-full transition-all duration-300 ${isCompleted ? 'bg-accent-primary' : ''} ${isActive ? 'shadow-accent-primary/50 bg-accent-primary shadow-lg' : ''} ${!isActive && !isCompleted ? 'neo-raised-sm bg-surface-elevated' : ''} ${isClickable ? 'cursor-pointer' : 'cursor-default'} `}
+                >
+                  {isCompleted ? (
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                    >
+                      <Check className="h-6 w-6 text-white" />
+                    </motion.div>
+                  ) : (
+                    <Icon className={`h-6 w-6 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                  )}
 
-                {/* Active Glow */}
-                {isActive && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{
-                      opacity: [0.5, 0.8, 0.5],
-                      scale: [1, 1.2, 1],
-                    }}
-                    transition={{
-                      duration: 2,
-                      repeat: Infinity,
-                      ease: 'easeInOut',
-                    }}
-                    className="absolute inset-0 rounded-full bg-accent/50 -z-10 blur-md"
-                  />
-                )}
-              </motion.div>
+                  {isActive && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{
+                        opacity: [0.5, 0.8, 0.5],
+                        scale: [1, 1.2, 1],
+                      }}
+                      transition={{
+                        duration: 2,
+                        repeat: Infinity,
+                        ease: 'easeInOut',
+                      }}
+                      className="bg-accent-primary/50 absolute inset-0 -z-10 rounded-full blur-md"
+                    />
+                  )}
+                </motion.button>
 
-              {/* Step Label */}
-              <div className="hidden sm:block ml-3">
                 <span
-                  className={`
-                    text-sm font-medium transition-colors
-                    ${isActive ? 'text-white' : ''}
-                    ${isCompleted ? 'text-accent' : ''}
-                    ${isUpcoming ? 'text-white/40' : ''}
-                  `}
+                  className={`mt-2 text-sm font-medium transition-colors ${isActive ? 'text-white' : ''} ${isCompleted ? 'text-accent-primary' : ''} ${!isActive && !isCompleted ? 'text-slate-400' : ''} ${isClickable ? 'cursor-pointer hover:text-white' : ''} `}
+                  onClick={isClickable ? () => onStepClick(step.id) : undefined}
                 >
                   {step.label}
                 </span>
               </div>
 
-              {/* Connector Line */}
               {index < steps.length - 1 && (
-                <div className="relative mx-2 sm:mx-4 h-0.5 w-8 sm:w-16">
-                  {/* Background Line */}
-                  <div className="absolute inset-0 bg-white/20 rounded-full" />
-
-                  {/* Active/Completed Line */}
+                <div className="relative mx-4 -mt-8 h-0.5 flex-1">
+                  <div className="bg-border-default absolute inset-0 rounded-full" />
                   <motion.div
                     initial={false}
                     animate={{
-                      width: isCompleted || isActive ? '100%' : '0%',
+                      width: isCompleted ? '100%' : isActive ? '50%' : '0%',
                     }}
                     transition={{ duration: 0.5, ease: 'easeOut' }}
-                    className="absolute inset-0 bg-gradient-to-r from-accent to-purple-500 rounded-full"
+                    className="absolute inset-0 rounded-full bg-gradient-to-r from-accent-primary to-purple-500"
                   />
                 </div>
               )}
-            </li>
-          );
+            </div>
+          )
         })}
-      </ol>
+      </div>
 
-      {/* Mobile Labels */}
-      <div className="flex justify-center mt-4">
+      <div className="mt-4 flex justify-center">
         <span className="text-sm text-white/60">
-          Step {currentStep} of {steps.length}: {steps[currentStep - 1]?.label}
+          Step {currentIndex + 1} of {steps.length}: {steps[currentIndex]?.label}
         </span>
       </div>
     </nav>
-  );
+  )
 }
 
-export default StepIndicator;
+export default StepIndicator

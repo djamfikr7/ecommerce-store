@@ -1,5 +1,9 @@
-import { Metadata } from "next";
-import Link from "next/link";
+'use client'
+
+import { useState, useEffect, useCallback } from 'react'
+import { useParams, useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { motion } from 'framer-motion'
 import {
   ArrowLeft,
   Mail,
@@ -8,328 +12,596 @@ import {
   Calendar,
   ShoppingCart,
   DollarSign,
+  Clock,
   UserCog,
-  Ban,
-  Shield,
-} from "lucide-react";
+  Activity,
+} from 'lucide-react'
+import { UserActions } from '@/components/admin/user-actions'
 
-type UserRole = "customer" | "admin" | "moderator";
-type OrderStatus = "pending" | "processing" | "shipped" | "delivered" | "cancelled";
+type UserRole = 'USER' | 'ADMIN' | 'SUPERADMIN'
+type OrderStatus =
+  | 'PENDING'
+  | 'CONFIRMED'
+  | 'PROCESSING'
+  | 'SHIPPED'
+  | 'DELIVERED'
+  | 'CANCELLED'
+  | 'REFUNDED'
 
 interface Address {
-  id: string;
-  name: string;
-  line1: string;
-  line2?: string;
-  city: string;
-  state: string;
-  postalCode: string;
-  country: string;
-  isDefault: boolean;
+  id: string
+  type: string
+  firstName: string
+  lastName: string
+  addressLine1: string
+  addressLine2?: string
+  city: string
+  state?: string
+  postalCode: string
+  country: string
+  isDefault: boolean
 }
 
 interface Order {
-  id: string;
-  date: string;
-  status: OrderStatus;
-  total: number;
-  items: number;
+  id: string
+  orderNumber: string
+  status: OrderStatus
+  total: number
+  createdAt: string
 }
 
-// Mock user data
-const user = {
-  id: "1",
-  name: "Sarah Mitchell",
-  email: "sarah.m@email.com",
-  phone: "+1 (555) 123-4567",
-  role: "customer" as UserRole,
-  joined: "June 15, 2023",
-  totalOrders: 12,
-  totalSpent: 2450.99,
-  addresses: [
-    {
-      id: "1",
-      name: "Home",
-      line1: "123 Oak Street",
-      line2: "Apt 4B",
-      city: "San Francisco",
-      state: "CA",
-      postalCode: "94102",
-      country: "United States",
-      isDefault: true,
-    },
-    {
-      id: "2",
-      name: "Work",
-      line1: "456 Market Street",
-      line2: "Floor 12",
-      city: "San Francisco",
-      state: "CA",
-      postalCode: "94105",
-      country: "United States",
-      isDefault: false,
-    },
-  ] as Address[],
-  orders: [
-    { id: "ORD-001", date: "January 15, 2024", status: "processing", total: 249.99, items: 3 },
-    { id: "ORD-008", date: "January 13, 2024", status: "delivered", total: 99.5, items: 2 },
-    { id: "ORD-015", date: "December 20, 2023", status: "delivered", total: 189.99, items: 1 },
-    { id: "ORD-022", date: "November 15, 2023", status: "delivered", total: 450.0, items: 4 },
-  ] as Order[],
-};
+interface AuditLog {
+  id: string
+  action: string
+  entityType: string
+  entityId: string
+  oldValue: Record<string, unknown> | null
+  newValue: Record<string, unknown> | null
+  createdAt: string
+}
+
+interface UserDetail {
+  id: string
+  email: string
+  name: string | null
+  image: string | null
+  role: UserRole
+  phone: string | null
+  createdAt: string
+  updatedAt: string
+  addresses: Address[]
+  orders: Order[]
+  ordersCount: number
+  totalSpent: number
+  lastOrderAt: string | null
+}
 
 const roleColors: Record<UserRole, string> = {
-  customer: "bg-slate-500/20 text-slate-400 border-slate-500/30",
-  admin: "bg-purple-500/20 text-purple-400 border-purple-500/30",
-  moderator: "bg-cyan-500/20 text-cyan-400 border-cyan-500/30",
-};
+  USER: 'bg-slate-500/20 text-slate-400 border-slate-500/30',
+  ADMIN: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
+  SUPERADMIN: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
+}
 
 const statusColors: Record<OrderStatus, string> = {
-  pending: "bg-amber-500/20 text-amber-400 border-amber-500/30",
-  processing: "bg-blue-500/20 text-blue-400 border-blue-500/30",
-  shipped: "bg-purple-500/20 text-purple-400 border-purple-500/30",
-  delivered: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
-  cancelled: "bg-red-500/20 text-red-400 border-red-500/30",
-};
+  PENDING: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
+  CONFIRMED: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+  PROCESSING: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
+  SHIPPED: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
+  DELIVERED: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+  CANCELLED: 'bg-red-500/20 text-red-400 border-red-500/30',
+  REFUNDED: 'bg-slate-500/20 text-slate-400 border-slate-500/30',
+}
 
-export const metadata: Metadata = {
-  title: `User ${user.name} | Admin`,
-  description: "User Details",
-};
+const actionLabels: Record<string, string> = {
+  UPDATE_USER_ROLE: 'Role changed',
+  BAN_USER: 'Account banned',
+  UNBAN_USER: 'Account unbanned',
+  DELETE_USER: 'Account deleted',
+  RESTORE_USER: 'Account restored',
+  RESET_PASSWORD: 'Password reset requested',
+}
 
-export default function UserDetailPage({ params }: { params: { id: string } }) {
+export default function UserDetailPage() {
+  const params = useParams()
+  const router = useRouter()
+  const userId = params.id as string
+
+  const [user, setUser] = useState<UserDetail | null>(null)
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState<'orders' | 'activity'>('orders')
+
+  const fetchUser = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/admin/users/${userId}`)
+      const data = await res.json()
+      if (data.success) {
+        setUser(data.data)
+      }
+    } catch (error) {
+      console.error('Failed to fetch user:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [userId])
+
+  const fetchAuditLogs = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/admin/audit-logs?entityType=User&entityId=${userId}&limit=20`)
+      const data = await res.json()
+      if (data.success) {
+        setAuditLogs(data.data.logs || [])
+      }
+    } catch {
+      // Audit logs may not exist yet
+    }
+  }, [userId])
+
+  useEffect(() => {
+    fetchUser()
+    fetchAuditLogs()
+  }, [fetchUser, fetchAuditLogs])
+
+  const handleRoleChange = async (id: string, role: UserRole) => {
+    const res = await fetch(`/api/admin/users/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role }),
+    })
+    if (res.ok) {
+      fetchUser()
+      fetchAuditLogs()
+    }
+  }
+
+  const handleDelete = async (id: string) => {
+    const res = await fetch(`/api/admin/users/${id}`, {
+      method: 'DELETE',
+    })
+    if (res.ok) {
+      fetchUser()
+      fetchAuditLogs()
+    }
+  }
+
+  const handleRestore = async (id: string) => {
+    const res = await fetch(`/api/admin/users/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ restore: true }),
+    })
+    if (res.ok) {
+      fetchUser()
+      fetchAuditLogs()
+    }
+  }
+
+  const handleResetPassword = async (id: string) => {
+    await fetch(`/api/admin/users/${id}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'reset-password' }),
+    })
+    fetchAuditLogs()
+  }
+
+  const getInitials = (name: string | null, email: string) => {
+    if (name) {
+      return name
+        .split(' ')
+        .map((n) => n[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2)
+    }
+    return email.slice(0, 2).toUpperCase()
+  }
+
+  const formatDate = (date: string) => {
+    return new Date(date).toLocaleDateString('en-US', {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+    })
+  }
+
+  const formatDateTime = (date: string) => {
+    return new Date(date).toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    })
+  }
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <div className="h-10 w-10 animate-pulse rounded-xl bg-slate-700/50" />
+          <div className="flex items-center gap-4">
+            <div className="h-14 w-14 animate-pulse rounded-full bg-slate-700/50" />
+            <div className="space-y-2">
+              <div className="h-6 w-40 animate-pulse rounded bg-slate-700/50" />
+              <div className="h-4 w-24 animate-pulse rounded bg-slate-700/50" />
+            </div>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="rounded-2xl border border-slate-700/50 bg-slate-800/30 p-6">
+              <div className="h-16 w-full animate-pulse rounded bg-slate-700/50" />
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16">
+        <p className="text-lg text-slate-400">User not found</p>
+        <Link href="/admin/users" className="mt-4 text-cyan-400 hover:text-cyan-300">
+          Back to users
+        </Link>
+      </div>
+    )
+  }
+
+  const isDeleted = false // Would come from user data in real implementation
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-4">
-          <Link
-            href="/admin/users"
-            className="p-2 rounded-xl bg-slate-800/50 text-slate-400 hover:text-white hover:bg-slate-700/50 transition-colors"
+          <button
+            onClick={() => router.back()}
+            className="rounded-xl bg-slate-800/50 p-2 text-slate-400 transition-colors hover:bg-slate-700/50 hover:text-white"
           >
             <ArrowLeft size={20} />
-          </Link>
+          </button>
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-cyan-500 to-purple-500 flex items-center justify-center text-white font-bold text-xl">
-              {user.name.split(" ").map((n) => n[0]).join("").toUpperCase()}
-            </div>
+            {user.image ? (
+              <img
+                src={user.image}
+                alt={user.name || user.email}
+                className="h-14 w-14 rounded-full object-cover"
+              />
+            ) : (
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-cyan-500 to-purple-500 text-xl font-bold text-white">
+                {getInitials(user.name, user.email)}
+              </div>
+            )}
             <div>
               <div className="flex items-center gap-3">
-                <h1 className="text-2xl lg:text-3xl font-bold text-white">{user.name}</h1>
+                <h1 className="text-2xl font-bold text-white lg:text-3xl">
+                  {user.name || 'Unnamed User'}
+                </h1>
                 <span
-                  className={`inline-flex px-3 py-1 text-xs font-medium rounded-full border ${roleColors[user.role]}`}
+                  className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium ${roleColors[user.role]}`}
                 >
-                  {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                  {user.role === 'SUPERADMIN'
+                    ? 'Super Admin'
+                    : user.role.charAt(0) + user.role.slice(1).toLowerCase()}
                 </span>
               </div>
-              <p className="text-slate-400 mt-1">Customer since {user.joined}</p>
+              <p className="mt-1 text-slate-400">Member since {formatDate(user.createdAt)}</p>
             </div>
           </div>
         </div>
         <div className="flex gap-3">
-          <button className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800/50 text-slate-300 font-medium border border-slate-700 hover:bg-slate-700/50 transition-colors">
+          <a
+            href={`mailto:${user.email}`}
+            className="inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-2 font-medium text-slate-300 transition-colors hover:bg-slate-700/50"
+          >
             <Mail size={18} />
             Send Email
-          </button>
-          <button className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800/50 text-slate-300 font-medium border border-slate-700 hover:bg-slate-700/50 transition-colors">
-            <UserCog size={18} />
-            Edit User
-          </button>
+          </a>
         </div>
       </div>
 
       {/* Stats Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-slate-800/30 backdrop-blur-sm rounded-2xl border border-slate-700/50 p-6">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="rounded-2xl border border-slate-700/50 bg-slate-800/30 p-6 backdrop-blur-sm">
           <div className="flex items-center gap-3">
-            <div className="p-3 rounded-xl bg-cyan-500/20">
+            <div className="rounded-xl bg-cyan-500/20 p-3">
               <ShoppingCart className="text-cyan-400" size={24} />
             </div>
             <div>
-              <p className="text-slate-400 text-sm">Total Orders</p>
-              <p className="text-2xl font-bold text-white">{user.totalOrders}</p>
+              <p className="text-sm text-slate-400">Total Orders</p>
+              <p className="text-2xl font-bold text-white">{user.ordersCount}</p>
             </div>
           </div>
         </div>
-        <div className="bg-slate-800/30 backdrop-blur-sm rounded-2xl border border-slate-700/50 p-6">
+        <div className="rounded-2xl border border-slate-700/50 bg-slate-800/30 p-6 backdrop-blur-sm">
           <div className="flex items-center gap-3">
-            <div className="p-3 rounded-xl bg-emerald-500/20">
+            <div className="rounded-xl bg-emerald-500/20 p-3">
               <DollarSign className="text-emerald-400" size={24} />
             </div>
             <div>
-              <p className="text-slate-400 text-sm">Total Spent</p>
-              <p className="text-2xl font-bold text-white">${user.totalSpent.toFixed(2)}</p>
+              <p className="text-sm text-slate-400">Total Spent</p>
+              <p className="text-2xl font-bold text-white">${(user.totalSpent / 100).toFixed(2)}</p>
             </div>
           </div>
         </div>
-        <div className="bg-slate-800/30 backdrop-blur-sm rounded-2xl border border-slate-700/50 p-6">
+        <div className="rounded-2xl border border-slate-700/50 bg-slate-800/30 p-6 backdrop-blur-sm">
           <div className="flex items-center gap-3">
-            <div className="p-3 rounded-xl bg-purple-500/20">
+            <div className="rounded-xl bg-purple-500/20 p-3">
               <Calendar className="text-purple-400" size={24} />
             </div>
             <div>
-              <p className="text-slate-400 text-sm">Average Order</p>
+              <p className="text-sm text-slate-400">Average Order</p>
               <p className="text-2xl font-bold text-white">
-                ${(user.totalSpent / user.totalOrders).toFixed(2)}
+                $
+                {user.ordersCount > 0
+                  ? (user.totalSpent / 100 / user.ordersCount).toFixed(2)
+                  : '0.00'}
               </p>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Main Content */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Order History */}
-          <div className="bg-slate-800/30 backdrop-blur-sm rounded-2xl border border-slate-700/50 overflow-hidden">
-            <div className="p-6 border-b border-slate-700/50">
-              <h2 className="text-lg font-semibold text-white">Order History</h2>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-slate-900/50">
-                  <tr>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                      Order
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                      Date
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                      Items
-                    </th>
-                    <th className="px-6 py-4 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                      Total
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-700/50">
-                  {user.orders.map((order, index) => (
-                    <tr
-                      key={order.id}
-                      className={`hover:bg-slate-700/20 transition-colors ${
-                        index % 2 === 0 ? "bg-slate-800/20" : ""
-                      }`}
-                    >
-                      <td className="px-6 py-4">
-                        <Link
-                          href={`/admin/orders/${order.id}`}
-                          className="text-cyan-400 font-medium hover:text-cyan-300"
-                        >
-                          {order.id}
-                        </Link>
-                      </td>
-                      <td className="px-6 py-4 text-slate-400">{order.date}</td>
-                      <td className="px-6 py-4">
-                        <span
-                          className={`inline-flex px-3 py-1 text-xs font-medium rounded-full border ${
-                            statusColors[order.status]
+        <div className="space-y-6 lg:col-span-2">
+          {/* Tabs */}
+          <div className="flex gap-1 rounded-xl border border-slate-700/50 bg-slate-800/30 p-1">
+            <button
+              onClick={() => setActiveTab('orders')}
+              className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors ${
+                activeTab === 'orders'
+                  ? 'bg-cyan-500/20 text-cyan-400'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <ShoppingCart size={16} />
+              Orders ({user.ordersCount})
+            </button>
+            <button
+              onClick={() => setActiveTab('activity')}
+              className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors ${
+                activeTab === 'activity'
+                  ? 'bg-cyan-500/20 text-cyan-400'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Activity size={16} />
+              Activity Log
+            </button>
+          </div>
+
+          {/* Orders Tab */}
+          {activeTab === 'orders' && (
+            <div className="overflow-hidden rounded-2xl border border-slate-700/50 bg-slate-800/30 backdrop-blur-sm">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-slate-900/50">
+                    <tr>
+                      <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
+                        Order
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
+                        Date
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
+                        Status
+                      </th>
+                      <th className="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider text-slate-400">
+                        Total
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-700/50">
+                    {user.orders.length === 0 ? (
+                      <tr>
+                        <td colSpan={4} className="px-6 py-12 text-center text-slate-400">
+                          No orders yet
+                        </td>
+                      </tr>
+                    ) : (
+                      user.orders.map((order, index) => (
+                        <motion.tr
+                          key={order.id}
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          transition={{ delay: index * 0.05 }}
+                          className={`transition-colors hover:bg-slate-700/20 ${
+                            index % 2 === 0 ? 'bg-slate-800/20' : ''
                           }`}
                         >
-                          {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-slate-400">{order.items}</td>
-                      <td className="px-6 py-4 text-right text-slate-200 font-medium">
-                        ${order.total.toFixed(2)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                          <td className="px-6 py-4">
+                            <Link
+                              href={`/admin/orders/${order.id}`}
+                              className="font-medium text-cyan-400 hover:text-cyan-300"
+                            >
+                              {order.orderNumber}
+                            </Link>
+                          </td>
+                          <td className="px-6 py-4 text-slate-400">
+                            {formatDateTime(order.createdAt)}
+                          </td>
+                          <td className="px-6 py-4">
+                            <span
+                              className={`inline-flex rounded-full border px-3 py-1 text-xs font-medium ${statusColors[order.status]}`}
+                            >
+                              {order.status.charAt(0) + order.status.slice(1).toLowerCase()}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-right font-medium text-slate-200">
+                            ${(order.total / 100).toFixed(2)}
+                          </td>
+                        </motion.tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* Activity Tab */}
+          {activeTab === 'activity' && (
+            <div className="overflow-hidden rounded-2xl border border-slate-700/50 bg-slate-800/30 backdrop-blur-sm">
+              <div className="p-6">
+                {auditLogs.length === 0 ? (
+                  <p className="py-8 text-center text-slate-400">No activity recorded yet</p>
+                ) : (
+                  <div className="space-y-4">
+                    {auditLogs.map((log, index) => (
+                      <motion.div
+                        key={log.id}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                        className="flex items-start gap-4 rounded-xl border border-slate-700 bg-slate-900/50 p-4"
+                      >
+                        <div className="rounded-lg bg-slate-700/50 p-2">
+                          <Clock size={16} className="text-slate-400" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium text-slate-200">
+                            {actionLabels[log.action] || log.action}
+                          </p>
+                          {log.oldValue && log.newValue && (
+                            <p className="mt-1 text-sm text-slate-400">
+                              {log.action === 'UPDATE_USER_ROLE' && (
+                                <>
+                                  Role:{' '}
+                                  <span className="text-slate-300">
+                                    {(log.oldValue as Record<string, string>).role || 'N/A'}
+                                  </span>{' '}
+                                  →{' '}
+                                  <span className="text-cyan-400">
+                                    {(log.newValue as Record<string, string>).role || 'N/A'}
+                                  </span>
+                                </>
+                              )}
+                            </p>
+                          )}
+                          <p className="mt-1 text-xs text-slate-500">
+                            {formatDateTime(log.createdAt)}
+                          </p>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Sidebar */}
         <div className="space-y-6">
           {/* Contact Info */}
-          <div className="bg-slate-800/30 backdrop-blur-sm rounded-2xl border border-slate-700/50 overflow-hidden">
-            <div className="p-6 border-b border-slate-700/50">
+          <div className="overflow-hidden rounded-2xl border border-slate-700/50 bg-slate-800/30 backdrop-blur-sm">
+            <div className="border-b border-slate-700/50 p-6">
               <h2 className="text-lg font-semibold text-white">Contact Information</h2>
             </div>
-            <div className="p-6 space-y-4">
+            <div className="space-y-4 p-6">
               <div className="flex items-center gap-3">
                 <Mail size={18} className="text-slate-400" />
                 <a
                   href={`mailto:${user.email}`}
-                  className="text-slate-200 hover:text-cyan-400 transition-colors"
+                  className="text-slate-200 transition-colors hover:text-cyan-400"
                 >
                   {user.email}
                 </a>
               </div>
+              {user.phone && (
+                <div className="flex items-center gap-3">
+                  <Phone size={18} className="text-slate-400" />
+                  <a
+                    href={`tel:${user.phone}`}
+                    className="text-slate-200 transition-colors hover:text-cyan-400"
+                  >
+                    {user.phone}
+                  </a>
+                </div>
+              )}
+              {!user.phone && (
+                <div className="flex items-center gap-3">
+                  <Phone size={18} className="text-slate-500" />
+                  <span className="text-sm text-slate-500">No phone on file</span>
+                </div>
+              )}
               <div className="flex items-center gap-3">
-                <Phone size={18} className="text-slate-400" />
-                <a
-                  href={`tel:${user.phone}`}
-                  className="text-slate-200 hover:text-cyan-400 transition-colors"
-                >
-                  {user.phone}
-                </a>
+                <Clock size={18} className="text-slate-400" />
+                <span className="text-sm text-slate-400">Joined {formatDate(user.createdAt)}</span>
               </div>
+              {user.lastOrderAt && (
+                <div className="flex items-center gap-3">
+                  <ShoppingCart size={18} className="text-slate-400" />
+                  <span className="text-sm text-slate-400">
+                    Last order {formatDate(user.lastOrderAt)}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 
           {/* Addresses */}
-          <div className="bg-slate-800/30 backdrop-blur-sm rounded-2xl border border-slate-700/50 overflow-hidden">
-            <div className="p-6 border-b border-slate-700/50">
-              <h2 className="text-lg font-semibold text-white">Saved Addresses</h2>
-            </div>
-            <div className="p-6 space-y-4">
-              {user.addresses.map((address) => (
-                <div
-                  key={address.id}
-                  className="p-4 bg-slate-900/50 rounded-xl border border-slate-700"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-slate-200 font-medium">{address.name}</span>
-                    {address.isDefault && (
-                      <span className="text-xs text-cyan-400 bg-cyan-500/20 px-2 py-0.5 rounded-full">
-                        Default
+          {user.addresses.length > 0 && (
+            <div className="overflow-hidden rounded-2xl border border-slate-700/50 bg-slate-800/30 backdrop-blur-sm">
+              <div className="border-b border-slate-700/50 p-6">
+                <h2 className="text-lg font-semibold text-white">Saved Addresses</h2>
+              </div>
+              <div className="space-y-4 p-6">
+                {user.addresses.map((address) => (
+                  <div
+                    key={address.id}
+                    className="rounded-xl border border-slate-700 bg-slate-900/50 p-4"
+                  >
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="font-medium text-slate-200">
+                        {address.firstName} {address.lastName}
                       </span>
-                    )}
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <MapPin size={16} className="text-slate-500 mt-0.5" />
-                    <div className="text-slate-400 text-sm">
-                      <p>{address.line1}</p>
-                      {address.line2 && <p>{address.line2}</p>}
-                      <p>
-                        {address.city}, {address.state} {address.postalCode}
-                      </p>
-                      <p>{address.country}</p>
+                      <div className="flex items-center gap-2">
+                        <span className="rounded-full bg-slate-700/50 px-2 py-0.5 text-xs text-slate-500">
+                          {address.type}
+                        </span>
+                        {address.isDefault && (
+                          <span className="rounded-full bg-cyan-500/20 px-2 py-0.5 text-xs text-cyan-400">
+                            Default
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <MapPin size={16} className="mt-0.5 text-slate-500" />
+                      <div className="text-sm text-slate-400">
+                        <p>{address.addressLine1}</p>
+                        {address.addressLine2 && <p>{address.addressLine2}</p>}
+                        <p>
+                          {address.city}
+                          {address.state && `, ${address.state}`} {address.postalCode}
+                        </p>
+                        <p>{address.country}</p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Account Actions */}
-          <div className="bg-slate-800/30 backdrop-blur-sm rounded-2xl border border-slate-700/50 overflow-hidden">
-            <div className="p-6 border-b border-slate-700/50">
-              <h2 className="text-lg font-semibold text-white">Account Actions</h2>
-            </div>
-            <div className="p-6 space-y-3">
-              <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-slate-900/50 text-slate-300 hover:bg-slate-800 transition-colors">
-                <Shield size={18} />
-                Change Role
-              </button>
-              <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-slate-900/50 text-slate-300 hover:bg-slate-800 transition-colors">
-                <UserCog size={18} />
-                Reset Password
-              </button>
-              <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors">
-                <Ban size={18} />
-                Disable Account
-              </button>
-            </div>
-          </div>
+          <UserActions
+            userId={user.id}
+            userName={user.name || user.email}
+            currentRole={user.role}
+            isDeleted={isDeleted}
+            onRoleChange={handleRoleChange}
+            onDelete={handleDelete}
+            onRestore={handleRestore}
+            onResetPassword={handleResetPassword}
+          />
         </div>
       </div>
     </div>
-  );
+  )
 }

@@ -6,7 +6,7 @@ import { useState } from 'react'
 
 interface TrackingInfoProps {
   trackingNumber: string
-  carrier?: string
+  carrier?: string | undefined
 }
 
 const carrierUrls: Record<string, string> = {
@@ -14,6 +14,13 @@ const carrierUrls: Record<string, string> = {
   usps: 'https://tools.usps.com/go/TrackConfirmAction?tLabels=',
   fedex: 'https://www.fedex.com/fedextrack/?trknbr=',
   dhl: 'https://www.dhl.com/en/express/tracking.html?AWB=',
+}
+
+const carrierNames: Record<string, string> = {
+  ups: 'UPS',
+  usps: 'USPS',
+  fedex: 'FedEx',
+  dhl: 'DHL Express',
 }
 
 export default function TrackingInfo({ trackingNumber, carrier }: TrackingInfoProps) {
@@ -36,6 +43,7 @@ export default function TrackingInfo({ trackingNumber, carrier }: TrackingInfoPr
   }
 
   const trackingUrl = getTrackingUrl()
+  const carrierName = carrier ? carrierNames[carrier.toLowerCase()] || carrier : null
 
   return (
     <motion.div
@@ -52,10 +60,10 @@ export default function TrackingInfo({ trackingNumber, carrier }: TrackingInfoPr
 
       <div className="space-y-4">
         {/* Carrier */}
-        {carrier && (
+        {carrierName && (
           <div>
             <p className="mb-1 text-sm text-gray-400">Carrier</p>
-            <p className="font-semibold capitalize text-white">{carrier}</p>
+            <p className="font-semibold text-white">{carrierName}</p>
           </div>
         )}
 
@@ -66,18 +74,20 @@ export default function TrackingInfo({ trackingNumber, carrier }: TrackingInfoPr
             <div className="flex-1 rounded-xl border border-gray-700 bg-gray-900/50 px-4 py-3 font-mono text-white">
               {trackingNumber}
             </div>
-            <button
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
               onClick={handleCopy}
               className="rounded-xl border border-gray-700 bg-gray-900/50 p-3 text-gray-400 transition-all duration-300 hover:border-gray-600 hover:text-white"
               title="Copy tracking number"
             >
               {copied ? <Check className="h-5 w-5 text-green-400" /> : <Copy className="h-5 w-5" />}
-            </button>
+            </motion.button>
           </div>
         </div>
 
         {/* Track Shipment Button */}
-        {trackingUrl && (
+        {trackingUrl ? (
           <motion.a
             href={trackingUrl}
             target="_blank"
@@ -90,6 +100,10 @@ export default function TrackingInfo({ trackingNumber, carrier }: TrackingInfoPr
             Track Shipment
             <ExternalLink className="h-4 w-4" />
           </motion.a>
+        ) : (
+          <div className="rounded-xl border border-gray-700 bg-gray-900/50 p-4 text-center text-sm text-gray-400">
+            Carrier tracking link not available. Please check the carrier&apos;s website directly.
+          </div>
         )}
 
         {/* Info Message */}

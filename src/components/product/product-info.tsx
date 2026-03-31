@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { Heart, Share2, Check, Twitter, Facebook, Link2 } from 'lucide-react'
+import { Heart, Check, Truck, Shield, RotateCcw, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
@@ -11,7 +11,8 @@ import { PriceDisplay } from './price-display'
 import { RatingStars } from './rating-stars'
 import { VariantSelector } from './variant-selector'
 import { QuantitySelector } from './quantity-selector'
-import { Breadcrumb } from './breadcrumb'
+import { ShareButton } from '@/components/social/share-button'
+import { useCart } from '@/components/cart/cart-context'
 import type { ProductWithRelations, VariantWithInventory } from '@/types/products'
 
 interface ProductInfoProps {
@@ -19,51 +20,51 @@ interface ProductInfoProps {
 }
 
 export function ProductInfo({ product }: ProductInfoProps) {
+  const { addItem } = useCart()
   const [selectedVariant, setSelectedVariant] = useState<VariantWithInventory | null>(
-    product.variants[0] || null
+    product.variants[0] || null,
   )
   const [quantity, setQuantity] = useState(1)
   const [isWishlisted, setIsWishlisted] = useState(false)
-  const [showShareMenu, setShowShareMenu] = useState(false)
-  const [copied, setCopied] = useState(false)
+  const [isAdding, setIsAdding] = useState(false)
+  const [showSuccess, setShowSuccess] = useState(false)
 
-  const isOutOfStock = !product.variants.some((v) => v.stockQuantity > 0) && product.stockQuantity === 0
-  const isLowStock = product.stockQuantity > 0 && product.stockQuantity <= 10
+  const currentStock = selectedVariant?.stockQuantity ?? product.stockQuantity
+  const isOutOfStock = currentStock === 0
+  const isLowStock = currentStock > 0 && currentStock <= 10
 
   const stockStatus = isOutOfStock
     ? 'Out of Stock'
     : isLowStock
-    ? `Low Stock (${product.stockQuantity} left)`
-    : 'In Stock'
+      ? `Low Stock (${currentStock} left)`
+      : 'In Stock'
 
   const stockVariant = isOutOfStock ? 'danger' : isLowStock ? 'warning' : 'success'
 
-  const breadcrumbs = [
-    { label: 'Home', href: '/' },
-    ...(product.category ? [{ label: product.category.name, href: `/category/${product.category.slug}` }] : []),
-    { label: product.name, href: `/products/${product.slug}` },
-  ]
+  const handleAddToCart = async () => {
+    if (isAdding || isOutOfStock) return
 
-  const handleShare = async (type: 'twitter' | 'facebook' | 'copy') => {
-    const url = window.location.href
+    setIsAdding(true)
+    try {
+      await addItem({
+        productId: product.id,
+        ...(selectedVariant?.id && { variantId: selectedVariant.id }),
+        quantity,
+        price,
+        name: product.name,
+        slug: product.slug,
+        ...(product.images[0]?.url && { image: product.images[0].url }),
+        ...(selectedVariant?.name && { variantName: selectedVariant.name }),
+        ...(selectedVariant?.sku && { sku: selectedVariant.sku }),
+      })
 
-    if (type === 'twitter') {
-      window.open(
-        `https://twitter.com/intent/tweet?text=${encodeURIComponent(product.name)}&url=${encodeURIComponent(url)}`,
-        '_blank'
-      )
-    } else if (type === 'facebook') {
-      window.open(
-        `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
-        '_blank'
-      )
-    } else if (type === 'copy') {
-      await navigator.clipboard.writeText(url)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      setShowSuccess(true)
+      setTimeout(() => setShowSuccess(false), 2000)
+    } catch (error) {
+      console.error('Failed to add item to cart:', error)
+    } finally {
+      setIsAdding(false)
     }
-
-    setShowShareMenu(false)
   }
 
   const price = selectedVariant?.price ?? product.price
@@ -76,29 +77,26 @@ export function ProductInfo({ product }: ProductInfoProps) {
       transition={{ duration: 0.4 }}
       className="space-y-6"
     >
-      {/* Breadcrumb */}
-      <Breadcrumb items={breadcrumbs} />
+      {/* Category link */}
+      {product.category && (
+        <Link
+          href={`/categories/${product.category.slug}`}
+          className="text-sm text-accent-primary transition-colors hover:text-accent-primary-hover"
+        >
+          {product.category.name}
+        </Link>
+      )}
 
-      {/* Product header */}
-      <div>
-        {product.category && (
-          <Link
-            href={`/category/${product.category.slug}`}
-            className="text-sm text-accent-primary hover:text-accent-primary-hover transition-colors"
-          >
-            {product.category.name}
-          </Link>
-        )}
-        <h1 className="text-3xl md:text-4xl font-bold text-slate-100 mt-2">{product.name}</h1>
-      </div>
+      {/* Product name */}
+      <h1 className="text-3xl font-bold text-slate-100 md:text-4xl">{product.name}</h1>
 
       {/* Rating */}
       {product.averageRating !== undefined && (
         <div className="flex items-center gap-3">
           <RatingStars rating={product.averageRating} size="md" />
           <Link
-            href={`/products/${product.slug}#reviews`}
-            className="text-sm text-slate-400 hover:text-slate-300 transition-colors"
+            href={`/shop/${product.slug}#reviews`}
+            className="text-sm text-slate-400 transition-colors hover:text-slate-300"
           >
             {product.reviewCount} reviews
           </Link>
@@ -106,13 +104,13 @@ export function ProductInfo({ product }: ProductInfoProps) {
       )}
 
       {/* Price */}
-      <div className="py-4 border-y border-border-subtle">
-        <PriceDisplay amount={price} compareAtAmount={compareAtPrice} size="lg" />
+      <div className="border-border-subtle border-y py-4">
+        <PriceDisplay amount={price} compareAtAmount={compareAtPrice ?? null} size="lg" />
       </div>
 
       {/* Short description */}
       {product.description && (
-        <p className="text-slate-300 leading-relaxed">{product.description}</p>
+        <p className="leading-relaxed text-slate-300">{product.description}</p>
       )}
 
       {/* Variant selector */}
@@ -127,27 +125,72 @@ export function ProductInfo({ product }: ProductInfoProps) {
       )}
 
       {/* Quantity and Add to Cart */}
-      <div className="flex flex-col sm:flex-row gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row">
         <QuantitySelector
           value={quantity}
           onChange={setQuantity}
           min={1}
-          max={Math.min(10, product.stockQuantity || 10)}
+          max={Math.min(10, currentStock || 10)}
           disabled={isOutOfStock}
         />
-        <Button
-          size="lg"
-          className="flex-1"
-          disabled={isOutOfStock}
-          aria-label="Add to cart"
-        >
-          <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" />
-            <line x1="3" y1="6" x2="21" y2="6" />
-            <path d="M16 10a4 4 0 01-8 0" />
-          </svg>
-          {isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
-        </Button>
+        <motion.div className="flex-1" whileTap={{ scale: isOutOfStock ? 1 : 0.97 }}>
+          <Button
+            size="lg"
+            className="relative w-full overflow-hidden"
+            disabled={isOutOfStock || isAdding}
+            onClick={handleAddToCart}
+            aria-label="Add to cart"
+          >
+            <motion.div
+              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+              initial={{ x: '-100%' }}
+              animate={showSuccess ? { x: '100%' } : {}}
+              transition={{ duration: 0.6 }}
+            />
+            <span className="relative z-10 flex items-center justify-center gap-2">
+              {isAdding ? (
+                <>
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  Adding...
+                </>
+              ) : showSuccess ? (
+                <>
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: 'spring', stiffness: 500, damping: 15 }}
+                  >
+                    <Check className="h-5 w-5" />
+                  </motion.div>
+                  Added!
+                </>
+              ) : (
+                <>
+                  <svg
+                    className="h-5 w-5"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" />
+                    <line x1="3" y1="6" x2="21" y2="6" />
+                    <path d="M16 10a4 4 0 01-8 0" />
+                  </svg>
+                  {isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
+                </>
+              )}
+            </span>
+            {showSuccess && (
+              <motion.div
+                className="absolute inset-0 rounded-xl bg-green-500/30"
+                initial={{ scale: 0, opacity: 1 }}
+                animate={{ scale: 2, opacity: 0 }}
+                transition={{ duration: 0.6 }}
+              />
+            )}
+          </Button>
+        </motion.div>
         <Button
           variant="outline"
           size="lg"
@@ -156,16 +199,32 @@ export function ProductInfo({ product }: ProductInfoProps) {
           aria-pressed={isWishlisted}
         >
           <Heart
-            className={`h-5 w-5 ${isWishlisted ? 'fill-accent-danger text-accent-danger' : ''}`}
+            className={`h-5 w-5 transition-all ${isWishlisted ? 'scale-110 fill-accent-danger text-accent-danger' : ''}`}
           />
         </Button>
       </div>
 
       {/* Stock status */}
       <div className="flex items-center gap-2">
-        <Badge variant={stockVariant as 'success' | 'warning' | 'danger'}>
-          {stockStatus}
-        </Badge>
+        <Badge variant={stockVariant as 'success' | 'warning' | 'danger'}>{stockStatus}</Badge>
+      </div>
+
+      <Separator />
+
+      {/* Features */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="flex items-center gap-3 text-sm text-slate-400">
+          <Truck className="h-5 w-5 text-accent-primary" />
+          <span>Free Shipping</span>
+        </div>
+        <div className="flex items-center gap-3 text-sm text-slate-400">
+          <Shield className="h-5 w-5 text-accent-primary" />
+          <span>Secure Payment</span>
+        </div>
+        <div className="flex items-center gap-3 text-sm text-slate-400">
+          <RotateCcw className="h-5 w-5 text-accent-primary" />
+          <span>Easy Returns</span>
+        </div>
       </div>
 
       <Separator />
@@ -173,51 +232,32 @@ export function ProductInfo({ product }: ProductInfoProps) {
       {/* SKU */}
       <div className="flex items-center gap-2 text-sm text-slate-400">
         <span>SKU:</span>
-        <span className="font-mono text-slate-300">{product.sku}</span>
+        <span className="font-mono text-slate-300">{selectedVariant?.sku ?? product.sku}</span>
       </div>
+
+      {/* Tags */}
+      {product.tags.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {product.tags.map((tag) => (
+            <Badge key={tag.id} variant="outline">
+              {tag.name}
+            </Badge>
+          ))}
+        </div>
+      )}
 
       {/* Share */}
-      <div className="relative">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setShowShareMenu(!showShareMenu)}
-          aria-expanded={showShareMenu}
-        >
-          <Share2 className="h-4 w-4 mr-2" />
-          Share
-        </Button>
-
-        {showShareMenu && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="absolute left-0 mt-2 w-48 neo-card p-2 z-10"
-          >
-            <button
-              onClick={() => handleShare('twitter')}
-              className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-300 hover:bg-surface-elevated transition-colors"
-            >
-              <Twitter className="h-4 w-4" />
-              Twitter
-            </button>
-            <button
-              onClick={() => handleShare('facebook')}
-              className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-300 hover:bg-surface-elevated transition-colors"
-            >
-              <Facebook className="h-4 w-4" />
-              Facebook
-            </button>
-            <button
-              onClick={() => handleShare('copy')}
-              className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-300 hover:bg-surface-elevated transition-colors"
-            >
-              {copied ? <Check className="h-4 w-4 text-accent-success" /> : <Link2 className="h-4 w-4" />}
-              {copied ? 'Copied!' : 'Copy Link'}
-            </button>
-          </motion.div>
-        )}
-      </div>
+      <ShareButton
+        product={{
+          name: product.name,
+          slug: product.slug,
+          price: product.price,
+          image: product.images[0]?.url ?? null,
+          ...(product.description && { description: product.description }),
+        }}
+        variant="default"
+        size="md"
+      />
     </motion.div>
   )
 }
