@@ -76,12 +76,35 @@ const dropdownVariants = {
   exit: { opacity: 0, y: 8, scale: 0.96, transition: { duration: 0.15 } },
 }
 
+function useLocalStorage<T>(
+  key: string,
+  initialValue: T,
+): [T, (value: T | ((prev: T) => T)) => void] {
+  const [storedValue, setStoredValue] = useState<T>(() => {
+    try {
+      const item = window.localStorage.getItem(key)
+      return item ? JSON.parse(item) : initialValue
+    } catch {
+      return initialValue
+    }
+  })
+
+  const setValue = (value: T | ((prev: T) => T)) => {
+    const valueToStore = value instanceof Function ? value(storedValue) : value
+    setStoredValue(valueToStore)
+    window.localStorage.setItem(key, JSON.stringify(valueToStore))
+  }
+
+  return [storedValue, setValue]
+}
+
 export function AdminHeader() {
   const [showNotifications, setShowNotifications] = useState(false)
   const [showProfile, setShowProfile] = useState(false)
   const [notifications, setNotifications] = useState(mockNotifications)
   const [searchQuery, setSearchQuery] = useState('')
-  const [isDarkMode, setIsDarkMode] = useState(true)
+  const [searchFocused, setSearchFocused] = useState(false)
+  const [isDarkMode, setIsDarkMode] = useLocalStorage('admin-dark-mode', true)
 
   const notificationRef = useRef<HTMLDivElement>(null)
   const profileRef = useRef<HTMLDivElement>(null)
@@ -121,37 +144,62 @@ export function AdminHeader() {
     user: 'bg-purple-500/20 text-purple-400',
   }
 
+  const typeIcons: Record<Notification['type'], string> = {
+    order: 'ORD',
+    alert: '!',
+    user: 'USR',
+  }
+
   return (
-    <header className="sticky top-0 z-30 border-b border-slate-700/50 bg-slate-900/95 px-6 py-4 backdrop-blur-md">
-      <div className="flex items-center justify-between gap-4">
+    <header className="sticky top-0 z-30 border-b border-slate-700/50 bg-slate-900/95 px-4 py-3 backdrop-blur-md lg:px-6 lg:py-4">
+      <div className="flex items-center justify-between gap-3 lg:gap-4">
         {/* Search */}
         <div className="relative max-w-md flex-1">
-          <Search
-            className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"
-            size={18}
-          />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search orders, products, users..."
-            className="w-full rounded-xl border border-slate-700/50 bg-slate-800/50 py-2.5 pl-11 pr-4 text-slate-200 shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)] transition-all duration-200 placeholder:text-slate-500 focus:border-cyan-500/40 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-slate-500 transition-colors hover:bg-slate-700/50 hover:text-slate-300"
-            >
-              <X size={14} />
-            </button>
-          )}
+          <motion.div
+            animate={{
+              boxShadow: searchFocused
+                ? 'inset 0 2px 4px rgba(0,0,0,0.2), 0 0 0 2px rgba(34,211,238,0.3)'
+                : 'inset 0 2px 4px rgba(0,0,0,0.2)',
+            }}
+            transition={{ duration: 0.2 }}
+            className="relative"
+          >
+            <Search
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 transition-colors lg:left-4"
+              size={16}
+            />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onFocus={() => setSearchFocused(true)}
+              onBlur={() => setSearchFocused(false)}
+              placeholder="Search..."
+              className="w-full rounded-xl border border-slate-700/50 bg-slate-800/50 py-2 pl-9 pr-4 text-sm text-slate-200 transition-all duration-200 placeholder:text-slate-500 focus:border-cyan-500/40 focus:outline-none lg:py-2.5 lg:pl-11 lg:pr-4 lg:text-base"
+            />
+            <AnimatePresence>
+              {searchQuery && (
+                <motion.button
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-slate-500 transition-colors hover:bg-slate-700/50 hover:text-slate-300"
+                >
+                  <X size={14} />
+                </motion.button>
+              )}
+            </AnimatePresence>
+          </motion.div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 lg:gap-2">
           {/* Dark Mode Toggle */}
-          <button
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
             onClick={() => setIsDarkMode(!isDarkMode)}
-            className="relative rounded-xl bg-slate-800/50 p-2.5 text-slate-400 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition-colors hover:bg-slate-700/50 hover:text-white"
+            className="relative rounded-xl bg-slate-800/50 p-2 text-slate-400 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition-colors hover:bg-slate-700/50 hover:text-white lg:p-2.5"
             aria-label="Toggle dark mode"
           >
             <AnimatePresence mode="wait">
@@ -163,7 +211,7 @@ export function AdminHeader() {
                   exit={{ rotate: 90, opacity: 0 }}
                   transition={{ duration: 0.15 }}
                 >
-                  <Moon size={20} />
+                  <Moon size={18} />
                 </motion.div>
               ) : (
                 <motion.div
@@ -173,33 +221,38 @@ export function AdminHeader() {
                   exit={{ rotate: -90, opacity: 0 }}
                   transition={{ duration: 0.15 }}
                 >
-                  <Sun size={20} />
+                  <Sun size={18} />
                 </motion.div>
               )}
             </AnimatePresence>
-          </button>
+          </motion.button>
 
           {/* Notifications */}
           <div className="relative" ref={notificationRef}>
-            <button
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
               onClick={() => {
                 setShowNotifications(!showNotifications)
                 setShowProfile(false)
               }}
-              className="relative rounded-xl bg-slate-800/50 p-2.5 text-slate-400 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition-colors hover:bg-slate-700/50 hover:text-white"
+              className="relative rounded-xl bg-slate-800/50 p-2 text-slate-400 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition-colors hover:bg-slate-700/50 hover:text-white lg:p-2.5"
               aria-label="Notifications"
             >
-              <Bell size={20} />
-              {unreadCount > 0 && (
-                <motion.span
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow-[0_0_8px_rgba(239,68,68,0.5)]"
-                >
-                  {unreadCount}
-                </motion.span>
-              )}
-            </button>
+              <Bell size={18} />
+              <AnimatePresence>
+                {unreadCount > 0 && (
+                  <motion.span
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    exit={{ scale: 0 }}
+                    className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white shadow-[0_0_8px_rgba(239,68,68,0.5)] lg:h-5 lg:w-5 lg:text-[10px]"
+                  >
+                    {unreadCount}
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </motion.button>
 
             <AnimatePresence>
               {showNotifications && (
@@ -227,8 +280,10 @@ export function AdminHeader() {
                       <div className="p-8 text-center text-sm text-slate-500">No notifications</div>
                     ) : (
                       notifications.map((notification) => (
-                        <div
+                        <motion.div
                           key={notification.id}
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
                           onClick={() => markAsRead(notification.id)}
                           className={`group cursor-pointer border-b border-slate-700/30 p-4 transition-colors hover:bg-slate-700/30 ${
                             !notification.read ? 'bg-slate-700/20' : ''
@@ -238,11 +293,7 @@ export function AdminHeader() {
                             <div
                               className={`mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg text-xs font-medium ${typeColors[notification.type]}`}
                             >
-                              {notification.type === 'order'
-                                ? 'ORD'
-                                : notification.type === 'alert'
-                                  ? '!'
-                                  : 'USR'}
+                              {typeIcons[notification.type]}
                             </div>
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-2">
@@ -265,7 +316,7 @@ export function AdminHeader() {
                               <X size={14} />
                             </button>
                           </div>
-                        </div>
+                        </motion.div>
                       ))
                     )}
                   </div>
@@ -281,14 +332,16 @@ export function AdminHeader() {
 
           {/* Profile Dropdown */}
           <div className="relative" ref={profileRef}>
-            <button
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
               onClick={() => {
                 setShowProfile(!showProfile)
                 setShowNotifications(false)
               }}
-              className="flex items-center gap-3 rounded-xl p-2 transition-colors hover:bg-slate-700/50"
+              className="flex items-center gap-2 rounded-xl p-1.5 transition-colors hover:bg-slate-700/50 lg:gap-3 lg:p-2"
             >
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-cyan-500 to-purple-500 text-sm font-medium text-white shadow-[0_2px_8px_rgba(34,211,238,0.3)]">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-cyan-500 to-purple-500 text-xs font-medium text-white shadow-[0_2px_8px_rgba(34,211,238,0.3)] lg:h-9 lg:w-9 lg:text-sm">
                 AU
               </div>
               <div className="hidden text-left lg:block">
@@ -301,7 +354,7 @@ export function AdminHeader() {
                   showProfile ? 'rotate-180' : ''
                 }`}
               />
-            </button>
+            </motion.button>
 
             <AnimatePresence>
               {showProfile && (
@@ -317,14 +370,18 @@ export function AdminHeader() {
                     <p className="text-sm text-slate-400">{adminUser.email}</p>
                   </div>
                   <div className="p-2">
-                    <button className="flex w-full items-center gap-3 rounded-xl px-4 py-2.5 text-sm text-slate-300 transition-colors hover:bg-slate-700/50 hover:text-white">
-                      <User size={16} />
-                      Profile
-                    </button>
-                    <button className="flex w-full items-center gap-3 rounded-xl px-4 py-2.5 text-sm text-slate-300 transition-colors hover:bg-slate-700/50 hover:text-white">
-                      <Settings size={16} />
-                      Settings
-                    </button>
+                    {[
+                      { icon: User, label: 'Profile' },
+                      { icon: Settings, label: 'Settings' },
+                    ].map((item) => (
+                      <button
+                        key={item.label}
+                        className="flex w-full items-center gap-3 rounded-xl px-4 py-2.5 text-sm text-slate-300 transition-colors hover:bg-slate-700/50 hover:text-white"
+                      >
+                        <item.icon size={16} />
+                        {item.label}
+                      </button>
+                    ))}
                     <div className="my-1 border-t border-slate-700/50" />
                     <button className="flex w-full items-center gap-3 rounded-xl px-4 py-2.5 text-sm text-red-400 transition-colors hover:bg-red-500/10">
                       <LogOut size={16} />

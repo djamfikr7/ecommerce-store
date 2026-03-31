@@ -7,7 +7,7 @@ interface SkeletonBaseProps {
   className?: string
 }
 
-function SkeletonBase({ className }: SkeletonBaseProps) {
+export function SkeletonBase({ className }: SkeletonBaseProps) {
   return (
     <motion.div
       className={cn('shimmer rounded-lg bg-surface-elevated', className)}

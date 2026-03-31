@@ -36,3 +36,12 @@ export { ProductTable, type ProductListItem } from './product-table'
 // Admin Modal Components (legacy - kept for backwards compat)
 export { OrderStatusModal } from './order-status-modal'
 export { RefundModal } from './refund-modal'
+
+// Admin Analytics Components
+export { RevenueChart } from './revenue-chart'
+export { SalesChart } from './sales-chart'
+export { TopProducts } from './top-products'
+export { CustomerInsights } from './customer-insights'
+export { ConversionFunnel } from './conversion-funnel'
+export { DateRangePicker, type DateRangePreset } from './date-range-picker'
+export { ExportButton } from './export-button'
