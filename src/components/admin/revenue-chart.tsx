@@ -9,6 +9,7 @@ import {
   ResponsiveContainer,
   Area,
   AreaChart,
+  ReferenceLine,
 } from 'recharts'
 import { formatCurrency } from '@/lib/analytics/calculations'
 
@@ -21,9 +22,11 @@ function generateRevenueData(days: number) {
   return Array.from({ length: days }, (_, i) => {
     const date = new Date()
     date.setDate(date.getDate() - (days - 1 - i))
+    const baseRevenue = 3500 + Math.sin(i * 0.3) * 1500
+    const noise = Math.random() * 2000 - 1000
     return {
       date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      revenue: Math.floor(Math.random() * 5000) + 3000,
+      revenue: Math.max(1000, Math.floor(baseRevenue + noise)),
       orders: Math.floor(Math.random() * 40) + 20,
     }
   })
@@ -51,6 +54,10 @@ export function RevenueChart({ data, currency = 'USD' }: RevenueChartProps) {
     () => (totalOrders > 0 ? totalRevenue / totalOrders : 0),
     [totalRevenue, totalOrders],
   )
+  const avgRevenue = useMemo(
+    () => (chartData.length > 0 ? totalRevenue / chartData.length : 0),
+    [totalRevenue, chartData],
+  )
 
   return (
     <div className="rounded-2xl border border-slate-700/50 bg-slate-800/30 p-6 shadow-xl backdrop-blur-sm">
@@ -73,11 +80,12 @@ export function RevenueChart({ data, currency = 'USD' }: RevenueChartProps) {
         </div>
       </div>
 
-      <div className="mb-6 grid grid-cols-3 gap-4">
+      <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
         {[
           { label: 'Total Revenue', value: formatCurrency(totalRevenue, currency) },
           { label: 'Total Orders', value: totalOrders.toLocaleString() },
           { label: 'Avg Order Value', value: formatCurrency(avgOrderValue, currency) },
+          { label: 'Avg Daily Revenue', value: formatCurrency(avgRevenue, currency) },
         ].map((stat) => (
           <div
             key={stat.label}
@@ -127,6 +135,18 @@ export function RevenueChart({ data, currency = 'USD' }: RevenueChartProps) {
                 key === 'revenue' ? formatCurrency(num, currency) : num,
                 key === 'revenue' ? 'Revenue' : 'Orders',
               ]
+            }}
+          />
+          <ReferenceLine
+            y={avgRevenue}
+            stroke="#8b5cf6"
+            strokeDasharray="6 4"
+            strokeWidth={1.5}
+            label={{
+              value: 'Avg',
+              position: 'right',
+              fill: '#8b5cf6',
+              fontSize: 11,
             }}
           />
           <Area

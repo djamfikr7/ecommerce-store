@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
-import { routing } from '@/lib/i18n/routing'
-import { notFound } from 'next/navigation'
+import { Providers } from '@/components/providers'
 import './globals.css'
 
 const inter = Inter({
@@ -9,7 +8,7 @@ const inter = Inter({
   variable: '--font-sans',
 })
 
-const metadata: Metadata = {
+export const metadata: Metadata = {
   title: {
     default: 'E-Commerce Store',
     template: '%s | E-Commerce Store',
@@ -32,17 +31,13 @@ const metadata: Metadata = {
   },
 }
 
-const viewport: Viewport = {
+export const viewport: Viewport = {
   themeColor: '#0f0f1a',
   width: 'device-width',
   initialScale: 1,
 }
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className="dark">
       <body
@@ -51,10 +46,8 @@ export default function RootLayout({
           background: 'linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%)',
         }}
       >
-        {children}
+        <Providers>{children}</Providers>
       </body>
     </html>
   )
 }
-
-export { metadata, viewport }

@@ -3,7 +3,18 @@
 import { useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { Users, UserPlus, Repeat, DollarSign, ShoppingCart, TrendingUp } from 'lucide-react'
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts'
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  Tooltip,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+} from 'recharts'
 import { formatCurrency } from '@/lib/analytics/calculations'
 
 interface CustomerInsightsProps {
@@ -33,10 +44,22 @@ const ACQUISITION_DATA = [
   { name: 'Email', value: 7, color: '#f59e0b' },
 ]
 
+function generateAcquisitionTrend() {
+  return Array.from({ length: 12 }, (_, i) => {
+    const month = new Date(2025, i, 1).toLocaleDateString('en-US', { month: 'short' })
+    return {
+      month,
+      newCustomers: Math.floor(Math.random() * 400) + 800,
+      returning: Math.floor(Math.random() * 600) + 1400,
+    }
+  })
+}
+
 export function CustomerInsights({ insights, currency = 'USD' }: CustomerInsightsProps) {
   const data = insights || MOCK_INSIGHTS
   const returningRate =
     data.totalCustomers > 0 ? (data.returningCustomers / data.totalCustomers) * 100 : 0
+  const acquisitionTrend = useMemo(() => generateAcquisitionTrend(), [])
 
   const metrics = useMemo(
     () => [
@@ -149,6 +172,66 @@ export function CustomerInsights({ insights, currency = 'USD' }: CustomerInsight
               <span className="text-sm font-medium text-white">{source.value}%</span>
             </div>
           ))}
+        </div>
+      </div>
+
+      <div className="mt-6">
+        <h4 className="mb-3 text-sm font-medium text-slate-300">Acquisition Trend (12 months)</h4>
+        <div className="h-[180px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={acquisitionTrend}>
+              <defs>
+                <linearGradient id="newCustGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="returnCustGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+              <XAxis
+                dataKey="month"
+                stroke="#64748b"
+                style={{ fontSize: '11px' }}
+                tickLine={false}
+                axisLine={false}
+              />
+              <YAxis
+                stroke="#64748b"
+                style={{ fontSize: '11px' }}
+                tickLine={false}
+                axisLine={false}
+              />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                  border: '1px solid rgba(148, 163, 184, 0.2)',
+                  borderRadius: '12px',
+                }}
+                labelStyle={{ color: '#e2e8f0' }}
+              />
+              <Area
+                type="monotone"
+                dataKey="newCustomers"
+                name="New"
+                stroke="#10b981"
+                strokeWidth={2}
+                fill="url(#newCustGrad)"
+                dot={false}
+              />
+              <Area
+                type="monotone"
+                dataKey="returning"
+                name="Returning"
+                stroke="#8b5cf6"
+                strokeWidth={2}
+                fill="url(#returnCustGrad)"
+                dot={false}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
         </div>
       </div>
     </div>

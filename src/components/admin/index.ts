@@ -1,6 +1,7 @@
 // Admin Layout Components
 export { AdminSidebar } from './admin-sidebar'
 export { AdminHeader } from './admin-header'
+export { AdminBreadcrumbs } from './admin-breadcrumbs'
 
 // Admin UI Components
 export { AdminTable, type Column } from './admin-table'
@@ -24,6 +25,10 @@ export {
 export { OrderTable, type Order, type OrderStatus } from './order-table'
 export { OrderStatusSelector } from './order-status-selector'
 export { OrderRefund } from './order-refund'
+
+// Admin Product Components
+export { ProductForm } from './product-form'
+export { ProductTable, type ProductListItem } from './product-table'
 
 // Admin Modal Components (legacy - kept for backwards compat)
 export { OrderStatusModal } from './order-status-modal'
