@@ -669,3 +669,13 @@ model ScheduledTask {
   @@index([scheduledFor])
   @@index([status])
 }
+
+model SiteSetting {
+  id    String @id @default(cuid())
+  key   String @unique
+  value Json
+  group String @default("general")
+
+  @@index([key])
+  @@index([group])
+}
