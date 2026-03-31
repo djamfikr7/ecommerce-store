@@ -3,20 +3,10 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import {
-  Search,
-  Filter,
-  Download,
-  Printer,
-  ChevronLeft,
-  ChevronRight,
-  Mail,
-  MoreHorizontal,
-} from 'lucide-react'
+import { Search, Filter, Download, Printer, ChevronLeft, ChevronRight, Mail } from 'lucide-react'
 import { OrderTable } from '@/components/admin/order-table'
 import type { Order, OrderStatus } from '@/components/admin/order-table'
 
-// Mock data
 const mockOrders: Order[] = [
   {
     id: 'ORD-001',
@@ -126,6 +116,78 @@ const mockOrders: Order[] = [
     items: 4,
     total: 312.5,
   },
+  {
+    id: 'ORD-013',
+    customer: 'Rachel Kim',
+    email: 'rachel.k@email.com',
+    date: '2024-01-11',
+    status: 'delivered',
+    items: 2,
+    total: 134.99,
+  },
+  {
+    id: 'ORD-014',
+    customer: 'Thomas Wright',
+    email: 'thomas.w@email.com',
+    date: '2024-01-11',
+    status: 'pending',
+    items: 3,
+    total: 267.5,
+  },
+  {
+    id: 'ORD-015',
+    customer: 'Olivia Chen',
+    email: 'olivia.c@email.com',
+    date: '2024-01-10',
+    status: 'processing',
+    items: 1,
+    total: 549.0,
+  },
+  {
+    id: 'ORD-016',
+    customer: 'Marcus Johnson',
+    email: 'marcus.j@email.com',
+    date: '2024-01-10',
+    status: 'shipped',
+    items: 5,
+    total: 389.95,
+  },
+  {
+    id: 'ORD-017',
+    customer: 'Sophia Patel',
+    email: 'sophia.p@email.com',
+    date: '2024-01-09',
+    status: 'delivered',
+    items: 2,
+    total: 178.0,
+  },
+  {
+    id: 'ORD-018',
+    customer: 'Ethan Brooks',
+    email: 'ethan.b@email.com',
+    date: '2024-01-09',
+    status: 'cancelled',
+    items: 1,
+    total: 45.99,
+  },
+  {
+    id: 'ORD-019',
+    customer: 'Ava Thompson',
+    email: 'ava.t@email.com',
+    date: '2024-01-08',
+    status: 'processing',
+    items: 4,
+    total: 312.0,
+  },
+  {
+    id: 'ORD-020',
+    customer: 'Noah Williams',
+    email: 'noah.w@email.com',
+    date: '2024-01-08',
+    status: 'pending',
+    items: 2,
+    total: 99.98,
+  },
 ]
 
 const statusOptions: { value: OrderStatus | 'all'; label: string }[] = [
@@ -156,6 +218,22 @@ export default function OrdersPage() {
 
   const ITEMS_PER_PAGE = 10
 
+  const getDateCutoff = () => {
+    const now = new Date()
+    switch (dateRange) {
+      case 'today':
+        return new Date(now.getFullYear(), now.getMonth(), now.getDate())
+      case '7days':
+        return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+      case '30days':
+        return new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+      case '90days':
+        return new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000)
+      default:
+        return new Date('2000-01-01')
+    }
+  }
+
   // Filter and sort orders
   const filteredOrders = mockOrders
     .filter((order) => {
@@ -164,7 +242,10 @@ export default function OrdersPage() {
         order.customer.toLowerCase().includes(searchQuery.toLowerCase()) ||
         order.email.toLowerCase().includes(searchQuery.toLowerCase())
       const matchesStatus = statusFilter === 'all' || order.status === statusFilter
-      return matchesSearch && matchesStatus
+      const orderDate = new Date(order.date)
+      const cutoffDate = getDateCutoff()
+      const matchesDateRange = orderDate >= cutoffDate
+      return matchesSearch && matchesStatus && matchesDateRange
     })
     .sort((a, b) => {
       const aValue = a[sortField]

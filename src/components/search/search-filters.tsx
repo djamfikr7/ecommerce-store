@@ -54,7 +54,7 @@ export function SearchFiltersComponent({
   }
 
   const handleResetFilters = () => {
-    const resetFilters: SearchFilters = { sort: 'relevance' }
+    const resetFilters: SearchFilters = { sort: filters.sort || 'relevance' }
     setLocalFilters(resetFilters)
     onFiltersChange(resetFilters)
   }

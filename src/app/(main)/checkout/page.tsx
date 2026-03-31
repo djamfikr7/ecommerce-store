@@ -1,17 +1,17 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { Elements } from '@stripe/react-stripe-js'
-import { loadStripe } from '@stripe/stripe-js'
+import { loadStripe, type Stripe } from '@stripe/stripe-js'
+import { AnimatePresence } from 'framer-motion'
 import { CheckoutSteps, type CheckoutStep } from '@/components/checkout/checkout-steps'
-import { ShippingForm, type ShippingFormData } from '@/components/checkout/shipping-form'
-import { PaymentForm } from '@/components/checkout/payment-form'
-import { OrderReview } from '@/components/checkout/order-review'
-import { FormattedPrice } from '@/components/currency/formatted-price'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { ShippingStep, type ShippingFormData } from '@/components/checkout/shipping-step'
+import { PaymentStep } from '@/components/checkout/payment-step'
+import { ReviewStep } from '@/components/checkout/review-step'
+import { OrderSidebar } from '@/components/checkout/order-sidebar'
 import { useCart } from '@/components/cart/cart-context'
 import { getStripePublishableKeyAction } from '@/lib/db-actions/checkout'
 
@@ -19,11 +19,12 @@ export default function CheckoutPage() {
   const router = useRouter()
   const { cart, isLoading: cartLoading } = useCart()
   const [currentStep, setCurrentStep] = useState<CheckoutStep>('shipping')
+  const [completedSteps, setCompletedSteps] = useState<CheckoutStep[]>([])
   const [shippingData, setShippingData] = useState<ShippingFormData | null>(null)
   const [paymentMethodId, setPaymentMethodId] = useState<string | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [stripePromise, setStripePromise] = useState<any>(null)
+  const [stripePromise, setStripePromise] = useState<Promise<Stripe | null> | null>(null)
 
   useEffect(() => {
     async function loadStripeKey() {
@@ -45,14 +46,36 @@ export default function CheckoutPage() {
     }
   }, [cart, cartLoading, router])
 
+  const cartItems = useMemo(
+    () =>
+      cart?.items.map((item) => {
+        const base = {
+          id: item.id,
+          name: item.name,
+          quantity: item.quantity,
+          price: item.price,
+        }
+        if (item.image) {
+          return { ...base, image: item.image }
+        }
+        if (item.variantName) {
+          return { ...base, variantName: item.variantName }
+        }
+        return base
+      }) ?? [],
+    [cart?.items],
+  )
+
   const handleShippingSubmit = (data: ShippingFormData) => {
     setShippingData(data)
+    setCompletedSteps((prev) => [...prev.filter((s) => s !== 'shipping'), 'shipping'])
     setCurrentStep('payment')
     setError(null)
   }
 
   const handlePaymentSubmit = async (pmId: string) => {
     setPaymentMethodId(pmId)
+    setCompletedSteps((prev) => [...prev.filter((s) => s !== 'payment'), 'payment'])
     setCurrentStep('review')
     setError(null)
   }
@@ -67,7 +90,6 @@ export default function CheckoutPage() {
       const guestCartId =
         typeof window !== 'undefined' ? localStorage.getItem('guest_cart_id') : null
 
-      // Create checkout session with Stripe
       const response = await fetch('/api/checkout/create-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -84,8 +106,6 @@ export default function CheckoutPage() {
       }
 
       const { url } = await response.json()
-
-      // Redirect to Stripe checkout
       window.location.href = url
     } catch (err) {
       console.error('Checkout error:', err)
@@ -94,11 +114,21 @@ export default function CheckoutPage() {
     }
   }
 
+  const handleStepClick = (step: CheckoutStep) => {
+    const stepOrder: CheckoutStep[] = ['shipping', 'payment', 'review']
+    const currentIndex = stepOrder.indexOf(currentStep)
+    const targetIndex = stepOrder.indexOf(step)
+
+    if (targetIndex < currentIndex) {
+      setCurrentStep(step)
+    }
+  }
+
   if (cartLoading) {
     return (
       <div className="from-background-start to-background-end flex min-h-screen items-center justify-center bg-gradient-to-b">
         <div className="text-center">
-          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-accent-primary"></div>
+          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-accent-primary" />
           <p className="text-slate-400">Loading checkout...</p>
         </div>
       </div>
@@ -108,14 +138,6 @@ export default function CheckoutPage() {
   if (!cart || cart.items.length === 0) {
     return null
   }
-
-  const cartItems = cart.items.map((item) => ({
-    id: item.id,
-    name: item.name,
-    quantity: item.quantity,
-    price: item.price,
-    ...(item.image && { image: item.image }),
-  }))
 
   return (
     <div className="from-background-start to-background-end min-h-screen bg-gradient-to-b">
@@ -139,7 +161,11 @@ export default function CheckoutPage() {
       {/* Progress Steps */}
       <div className="border-border-default bg-surface-elevated/50 border-b">
         <div className="container mx-auto px-4">
-          <CheckoutSteps currentStep={currentStep} />
+          <CheckoutSteps
+            currentStep={currentStep}
+            completedSteps={completedSteps}
+            onStepClick={handleStepClick}
+          />
         </div>
       </div>
 
@@ -148,19 +174,20 @@ export default function CheckoutPage() {
         <div className="grid gap-8 lg:grid-cols-3">
           {/* Form Section */}
           <div className="lg:col-span-2">
-            <Card className="neo-raised">
-              <CardContent className="p-6">
+            <div className="neo-raised rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm">
+              <AnimatePresence mode="wait">
                 {currentStep === 'shipping' && (
-                  <ShippingForm
+                  <ShippingStep
+                    key="shipping"
                     onSubmit={handleShippingSubmit}
-                    {...(shippingData && { defaultValues: shippingData })}
-                    isGuest={!cart.id}
+                    {...(shippingData ? { defaultValues: shippingData } : {})}
+                    isGuest={!cart?.guestCartId}
                   />
                 )}
 
                 {currentStep === 'payment' && stripePromise && (
-                  <Elements stripe={stripePromise}>
-                    <PaymentForm
+                  <Elements stripe={stripePromise} key="payment">
+                    <PaymentStep
                       onSubmit={handlePaymentSubmit}
                       onBack={() => setCurrentStep('shipping')}
                       isProcessing={isProcessing}
@@ -170,7 +197,8 @@ export default function CheckoutPage() {
                 )}
 
                 {currentStep === 'review' && shippingData && (
-                  <OrderReview
+                  <ReviewStep
+                    key="review"
                     shippingData={shippingData}
                     cartItems={cartItems}
                     subtotal={cart.totals.subtotal}
@@ -182,72 +210,19 @@ export default function CheckoutPage() {
                     isProcessing={isProcessing}
                   />
                 )}
-              </CardContent>
-            </Card>
+              </AnimatePresence>
+            </div>
           </div>
 
           {/* Order Summary Sidebar */}
           <div>
-            <Card className="neo-raised sticky top-24">
-              <CardHeader>
-                <CardTitle>Order Summary</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Cart Items */}
-                <div className="max-h-64 space-y-3 overflow-y-auto">
-                  {cartItems.map((item) => (
-                    <div key={item.id} className="flex gap-3">
-                      {item.image && (
-                        <div className="h-12 w-12 flex-shrink-0 overflow-hidden rounded-lg bg-surface-base">
-                          <img
-                            src={item.image}
-                            alt={item.name}
-                            className="h-full w-full object-cover"
-                          />
-                        </div>
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm text-white">{item.name}</p>
-                        <p className="text-xs text-slate-400">Qty: {item.quantity}</p>
-                      </div>
-                      <div className="text-sm text-slate-300">
-                        <FormattedPrice amountCents={item.price * item.quantity} />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Totals */}
-                <div className="border-border-default space-y-2 border-t pt-4">
-                  <div className="flex justify-between text-slate-400">
-                    <span>Subtotal</span>
-                    <FormattedPrice amountCents={cart.totals.subtotal} />
-                  </div>
-                  <div className="flex justify-between text-slate-400">
-                    <span>Shipping</span>
-                    {cart.totals.shipping === 0 ? (
-                      <span className="text-green-400">Free</span>
-                    ) : (
-                      <FormattedPrice amountCents={cart.totals.shipping} />
-                    )}
-                  </div>
-                  <div className="flex justify-between text-slate-400">
-                    <span>Tax (estimated)</span>
-                    <FormattedPrice amountCents={cart.totals.tax} />
-                  </div>
-                </div>
-
-                <div className="border-border-default border-t pt-4">
-                  <div className="flex justify-between text-lg font-bold">
-                    <span className="text-white">Total</span>
-                    <FormattedPrice
-                      amountCents={cart.totals.total}
-                      className="text-accent-primary"
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <OrderSidebar
+              items={cartItems}
+              subtotal={cart.totals.subtotal}
+              tax={cart.totals.tax}
+              shipping={cart.totals.shipping}
+              total={cart.totals.total}
+            />
           </div>
         </div>
       </div>

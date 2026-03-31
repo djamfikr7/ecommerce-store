@@ -17,6 +17,7 @@ import {
   ExternalLink,
   Copy,
   RefreshCcw,
+  TruckIcon,
 } from 'lucide-react'
 import { OrderStatusSelector } from '@/components/admin/order-status-selector'
 import { OrderRefund } from '@/components/admin/order-refund'
@@ -64,6 +65,11 @@ export default function OrderDetailPage({ params }: { params: { id: string } }) 
     { status: 'processing', timestamp: 'January 15, 2024 at 4:00 PM', note: 'Payment confirmed' },
   ])
   const [trackingNumber, setTrackingNumber] = useState<string | null>(null)
+  const [showShipDialog, setShowShipDialog] = useState(false)
+  const [shipTracking, setShipTracking] = useState('')
+  const [shipCarrier, setShipCarrier] = useState('usps')
+  const [shipNotify, setShipNotify] = useState(true)
+  const [isShipping, setIsShipping] = useState(false)
 
   const order = {
     id: params.id || 'ORD-001',
@@ -145,13 +151,35 @@ export default function OrderDetailPage({ params }: { params: { id: string } }) 
     navigator.clipboard.writeText(order.id)
   }
 
+  const handleMarkShipped = async () => {
+    if (!shipTracking.trim()) return
+    setIsShipping(true)
+    await new Promise((r) => setTimeout(r, 1500))
+    setTrackingNumber(shipTracking.trim())
+    setTimeline((prev) => [
+      ...prev,
+      {
+        status: 'shipped',
+        timestamp: new Date().toLocaleString(),
+        note: `Shipped via ${shipCarrier.toUpperCase()} - ${shipTracking.trim()}`,
+      },
+    ])
+    if (shipNotify) {
+      alert(`Shipping notification sent to ${order.customer.email}`)
+    }
+    setIsShipping(false)
+    setShowShipDialog(false)
+    setShipTracking('')
+    setShipCarrier('usps')
+  }
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-4">
           <Link
-            href="/admin/orders"
+            href="/orders"
             className="rounded-xl bg-slate-800/50 p-2 text-slate-400 transition-colors hover:bg-slate-700/50 hover:text-white"
           >
             <ArrowLeft size={20} />
@@ -335,7 +363,7 @@ export default function OrderDetailPage({ params }: { params: { id: string } }) 
                 <p className="text-sm text-slate-400">{order.customer.phone}</p>
               </div>
               <Link
-                href={`/admin/users/${order.customer.email}`}
+                href={`/users/${encodeURIComponent(order.customer.email)}`}
                 className="inline-flex items-center gap-2 text-sm font-medium text-cyan-400 transition-colors hover:text-cyan-300"
               >
                 View Customer Profile
@@ -416,6 +444,13 @@ export default function OrderDetailPage({ params }: { params: { id: string } }) 
               </div>
               <div className="space-y-3 p-6">
                 <button
+                  onClick={() => setShowShipDialog(true)}
+                  className="flex w-full items-center gap-3 rounded-xl bg-purple-500/10 px-4 py-3 text-purple-400 transition-colors hover:bg-purple-500/20"
+                >
+                  <TruckIcon size={18} />
+                  Mark as Shipped
+                </button>
+                <button
                   onClick={handleSendEmail}
                   className="flex w-full items-center gap-3 rounded-xl bg-slate-900/50 px-4 py-3 text-slate-300 transition-colors hover:bg-slate-800"
                 >
@@ -441,6 +476,85 @@ export default function OrderDetailPage({ params }: { params: { id: string } }) 
           )}
         </div>
       </div>
+
+      {/* Mark as Shipped Dialog */}
+      {showShipDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl border border-slate-700/50 bg-slate-800/95 p-6 shadow-2xl backdrop-blur-md">
+            <h2 className="mb-4 text-xl font-semibold text-white">Mark as Shipped</h2>
+            <p className="mb-4 text-sm text-slate-400">
+              Order <span className="font-medium text-cyan-400">{order.id}</span>
+            </p>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-slate-300">Carrier</label>
+                <select
+                  value={shipCarrier}
+                  onChange={(e) => setShipCarrier(e.target.value)}
+                  className="w-full cursor-pointer rounded-xl border border-slate-700 bg-slate-900/50 px-4 py-2.5 text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+                >
+                  <option value="usps">USPS</option>
+                  <option value="ups">UPS</option>
+                  <option value="fedex">FedEx</option>
+                  <option value="dhl">DHL</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-slate-300">
+                  Tracking Number <span className="text-red-400">*</span>
+                </label>
+                <div className="relative">
+                  <TruckIcon
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
+                    size={18}
+                  />
+                  <input
+                    type="text"
+                    value={shipTracking}
+                    onChange={(e) => setShipTracking(e.target.value)}
+                    placeholder="Enter tracking number..."
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900/50 py-2.5 pl-10 pr-4 text-slate-200 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+                  />
+                </div>
+              </div>
+              <label className="flex cursor-pointer items-center gap-3">
+                <div
+                  onClick={() => setShipNotify(!shipNotify)}
+                  className={`relative h-6 w-10 rounded-full transition-colors ${shipNotify ? 'bg-cyan-500' : 'bg-slate-600'}`}
+                >
+                  <div
+                    className={`absolute top-1 h-4 w-4 rounded-full bg-white transition-transform ${shipNotify ? 'translate-x-5' : 'translate-x-1'}`}
+                  />
+                </div>
+                <span className="text-sm text-slate-300">Send shipping notification</span>
+              </label>
+            </div>
+            <div className="mt-6 flex gap-3">
+              <button
+                onClick={() => setShowShipDialog(false)}
+                className="flex-1 rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-2.5 font-medium text-slate-300 transition-colors hover:bg-slate-700/50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleMarkShipped}
+                disabled={isShipping || !shipTracking.trim()}
+                className="flex-1 rounded-xl bg-gradient-to-r from-cyan-500 to-purple-500 px-4 py-2.5 font-medium text-white transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isShipping ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                    Processing...
+                  </span>
+                ) : (
+                  'Confirm Shipment'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

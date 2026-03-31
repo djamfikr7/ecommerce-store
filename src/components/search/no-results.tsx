@@ -1,5 +1,6 @@
 'use client'
 
+import { useMemo } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { Search, Sparkles, ArrowRight, XCircle } from 'lucide-react'
@@ -12,18 +13,86 @@ interface NoResultsProps {
   onClearFilters?: () => void
 }
 
+const COMMON_CATEGORIES = [
+  { label: 'Electronics', slug: 'electronics' },
+  { label: 'Clothing', slug: 'clothing' },
+  { label: 'Home & Garden', slug: 'home-garden' },
+  { label: 'Sports', slug: 'sports' },
+  { label: 'Books', slug: 'books' },
+  { label: 'Toys', slug: 'toys' },
+]
+
+const SEARCH_TIPS = [
+  'Check for typos or spelling errors',
+  'Try using fewer or different keywords',
+  'Try more general search terms',
+  'Remove filters to broaden your search',
+]
+
+function generateSuggestions(query: string): string[] {
+  const words = query.toLowerCase().trim().split(/\s+/)
+  const suggestions: string[] = []
+
+  const commonTerms = [
+    'laptop',
+    'phone',
+    'headphones',
+    'camera',
+    'watch',
+    'tablet',
+    'keyboard',
+    'mouse',
+    'monitor',
+    'speaker',
+    'charger',
+    'case',
+    'shirt',
+    'shoes',
+    'jacket',
+    'pants',
+    'dress',
+    'bag',
+    'desk',
+    'chair',
+    'lamp',
+    'plant',
+    'book',
+    'game',
+  ]
+
+  for (const word of words) {
+    for (const term of commonTerms) {
+      if (term.startsWith(word.slice(0, 3)) && !suggestions.includes(term)) {
+        suggestions.push(term)
+        if (suggestions.length >= 5) break
+      }
+    }
+    if (suggestions.length >= 5) break
+  }
+
+  if (suggestions.length < 3) {
+    const fallbacks = ['laptop', 'headphones', 'smartphone', 'camera', 'watch']
+    for (const fb of fallbacks) {
+      if (!suggestions.includes(fb)) {
+        suggestions.push(fb)
+        if (suggestions.length >= 5) break
+      }
+    }
+  }
+
+  return suggestions.slice(0, 5)
+}
+
 export function NoResults({
   query,
-  suggestions = [],
+  suggestions: providedSuggestions = [],
   onSuggestionClick,
   onClearFilters,
 }: NoResultsProps) {
-  const searchTips = [
-    'Check for typos or spelling errors',
-    'Try using fewer or different keywords',
-    'Try more general search terms',
-    'Remove filters to broaden your search',
-  ]
+  const suggestions = useMemo(
+    () => (providedSuggestions.length > 0 ? providedSuggestions : generateSuggestions(query)),
+    [providedSuggestions, query],
+  )
 
   return (
     <motion.div
@@ -80,7 +149,7 @@ export function NoResults({
       <div className="neo-card p-6">
         <h3 className="mb-4 text-lg font-semibold text-slate-100">Search tips</h3>
         <ul className="space-y-3">
-          {searchTips.map((tip, i) => (
+          {SEARCH_TIPS.map((tip, i) => (
             <li key={i} className="flex items-start gap-3 text-sm text-slate-400">
               <ArrowRight className="mt-0.5 h-4 w-4 flex-shrink-0 text-accent-primary" />
               {tip}
@@ -93,17 +162,15 @@ export function NoResults({
       <div className="neo-card p-6">
         <h3 className="mb-4 text-lg font-semibold text-slate-100">Browse categories</h3>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {['Electronics', 'Clothing', 'Home & Garden', 'Sports', 'Books', 'Toys'].map(
-            (category) => (
-              <Link
-                key={category}
-                href={`/shop?category=${category.toLowerCase().replace(/ & /g, '-')}`}
-                className="neo-raised-sm rounded-lg px-4 py-3 text-center text-sm text-slate-200 transition-colors hover:bg-surface-elevated hover:text-accent-primary"
-              >
-                {category}
-              </Link>
-            ),
-          )}
+          {COMMON_CATEGORIES.map((category) => (
+            <Link
+              key={category.slug}
+              href={`/shop?category=${category.slug}`}
+              className="neo-raised-sm rounded-lg px-4 py-3 text-center text-sm text-slate-200 transition-colors hover:bg-surface-elevated hover:text-accent-primary"
+            >
+              {category.label}
+            </Link>
+          ))}
         </div>
       </div>
     </motion.div>

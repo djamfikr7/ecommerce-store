@@ -8,6 +8,9 @@ export { AdminTable, type Column } from './admin-table'
 export { AdminModal } from './admin-modal'
 export { ChartContainer } from './chart-container'
 export { StatsCard } from './stats-card'
+export { MetricCard } from './metric-card'
+export { RecentOrders } from './recent-orders'
+export { LowStockAlert } from './low-stock-alert'
 
 // Admin Form Components
 export { AdminForm, FormField, FormInput, FormTextarea, FormSelect } from './admin-form'

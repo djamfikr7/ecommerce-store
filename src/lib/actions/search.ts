@@ -17,6 +17,7 @@ export interface SearchResults {
   total: number
   page: number
   pageSize: number
+  totalPages: number
   query: string
   filters: SearchFilters
 }
@@ -66,6 +67,7 @@ export async function searchProductsFull(
     total: result.total,
     page: result.page,
     pageSize: result.pageSize,
+    totalPages: Math.ceil(result.total / result.pageSize),
     query,
     filters,
   }

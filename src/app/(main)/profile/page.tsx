@@ -7,7 +7,7 @@ import { Avatar } from '@/components/ui/avatar'
 import { ProfileForm } from '@/components/profile/profile-form'
 import { PasswordChange } from '@/components/profile/password-change'
 import { getSessionAction } from '@/lib/actions/auth'
-import { MapPin } from 'lucide-react'
+import { MapPin, UserCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 interface UserData {
@@ -65,26 +65,29 @@ export default function ProfilePage() {
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="flex items-center gap-6"
+        className="neo-card rounded-2xl p-6"
       >
-        <Avatar
-          src={user.image || null}
-          alt={user.name || 'User'}
-          fallback={user.name || user.email || 'U'}
-          size="xl"
-        />
-        <div className="flex-1">
-          <h1 className="gradient-text text-3xl font-bold">{user.name || 'User'}</h1>
-          <p className="mt-1 text-slate-400">{user.email}</p>
+        <div className="flex items-center gap-6">
+          <Avatar
+            src={user.image || null}
+            alt={user.name || 'User'}
+            fallback={user.name || user.email || 'U'}
+            size="xl"
+          />
+          <div className="flex-1">
+            <h1 className="gradient-text text-3xl font-bold">{user.name || 'User'}</h1>
+            <p className="mt-1 text-slate-400">{user.email}</p>
+            {user.phone && <p className="mt-1 text-sm text-slate-500">{user.phone}</p>}
+          </div>
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={() => router.push('/profile/addresses')}
+          >
+            <MapPin className="h-4 w-4" />
+            Manage Addresses
+          </Button>
         </div>
-        <Button
-          variant="outline"
-          className="gap-2"
-          onClick={() => router.push('/profile/addresses')}
-        >
-          <MapPin className="h-4 w-4" />
-          Manage Addresses
-        </Button>
       </motion.div>
 
       {/* Profile Form */}

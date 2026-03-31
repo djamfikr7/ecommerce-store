@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Loader2 } from 'lucide-react'
+import { Plus, Loader2, ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { AddressForm } from '@/components/profile/address-form'
 import { AddressList } from '@/components/profile/address-list'
@@ -27,6 +28,7 @@ interface Address {
 }
 
 export default function AddressesPage() {
+  const router = useRouter()
   const [addresses, setAddresses] = useState<Address[]>([])
   const [showForm, setShowForm] = useState(false)
   const [editingAddress, setEditingAddress] = useState<Address | null>(null)
@@ -90,11 +92,25 @@ export default function AddressesPage() {
   }
 
   return (
-    <div className="min-h-screen">
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: 'easeOut' }}
+      className="min-h-screen"
+    >
       <div className="mx-auto max-w-6xl px-4 py-8">
         {/* Page Header */}
-        <div className="mb-8 flex items-center justify-between">
-          <div>
+        <div className="mb-8 flex items-start justify-between gap-4">
+          <div className="flex-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="mb-4 gap-2 text-slate-400 hover:text-slate-200"
+              onClick={() => router.push('/profile')}
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to Profile
+            </Button>
             <h1 className="gradient-text mb-2 text-3xl font-bold">Addresses</h1>
             <p className="text-slate-400">Manage your shipping and billing addresses</p>
           </div>
@@ -130,6 +146,6 @@ export default function AddressesPage() {
           />
         )}
       </div>
-    </div>
+    </motion.div>
   )
 }

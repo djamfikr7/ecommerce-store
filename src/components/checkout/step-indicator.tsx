@@ -45,7 +45,7 @@ export function StepIndicator({ currentStep, completedSteps, onStepClick }: Step
                   disabled={!isClickable}
                   initial={false}
                   animate={{ scale: isActive ? 1.1 : 1 }}
-                  whileHover={isClickable ? { scale: 1.05 } : undefined}
+                  {...(isClickable && { whileHover: { scale: 1.05 } })}
                   className={`relative flex h-12 w-12 items-center justify-center rounded-full transition-all duration-300 ${isCompleted ? 'bg-accent-primary' : ''} ${isActive ? 'shadow-accent-primary/50 bg-accent-primary shadow-lg' : ''} ${!isActive && !isCompleted ? 'neo-raised-sm bg-surface-elevated' : ''} ${isClickable ? 'cursor-pointer' : 'cursor-default'} `}
                 >
                   {isCompleted ? (

@@ -136,7 +136,7 @@ export function OrderTable({
                 </td>
                 <td className="px-4 py-4">
                   <Link
-                    href={`/admin/orders/${order.id}`}
+                    href={`/orders/${order.id}`}
                     className="font-medium text-cyan-400 transition-colors hover:text-cyan-300"
                   >
                     {order.id}
@@ -163,7 +163,7 @@ export function OrderTable({
                 <td className="px-4 py-4 text-right">
                   <div className="flex items-center justify-end gap-1">
                     <Link
-                      href={`/admin/orders/${order.id}`}
+                      href={`/orders/${order.id}`}
                       className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-700/50 hover:text-white"
                       title="View Order"
                     >

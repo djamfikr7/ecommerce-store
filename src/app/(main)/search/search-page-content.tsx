@@ -22,6 +22,7 @@ export function SearchPageContent() {
   const [categories, setCategories] = useState<CategoryWithCount[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [total, setTotal] = useState(0)
+  const [totalPages, setTotalPages] = useState(1)
   const [page, setPage] = useState(1)
   const [pageSize] = useState(20)
   const [suggestions, setSuggestions] = useState<string[]>([])
@@ -71,6 +72,7 @@ export function SearchPageContent() {
       const result = await searchProductsFull(query, filters, page, pageSize)
       setProducts(result.products)
       setTotal(result.total)
+      setTotalPages(result.totalPages)
 
       // Fetch suggestions when no results
       if (result.total === 0) {
@@ -128,8 +130,6 @@ export function SearchPageContent() {
     setQuery(suggestion)
     setPage(1)
   }
-
-  const totalPages = Math.ceil(total / pageSize)
 
   const activeFilterCount = useMemo(
     () =>
